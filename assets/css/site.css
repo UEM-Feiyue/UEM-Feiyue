@@ -39,3 +39,6 @@ a:is(:hover,:focus-visible) .link-arrow{transform:translateX(3px) rotate(45deg)}
 
 /* Accessible mobile navigation and compact page structure. */
 .sidebar{overflow-y:auto}.nav a:focus-visible,.sidebar-theme:focus-visible{outline-offset:0}.nav a[aria-current="page"]{background:var(--soft);color:var(--accent);font-weight:650}.article-back{display:inline-flex;align-items:center;gap:7px}.article-back .link-arrow{margin-left:0}.home-intro[hidden],.archive-intro[hidden],#archive-section[hidden]{display:none!important}@media(max-width:580px){.home-intro h1{font-size:clamp(34px,9vw,46px)}.home-actions{gap:4px 24px}.home-guide{margin-top:34px}}
+
+/* Mobile theme control must override the desktop-only default. */
+@media(max-width:900px){.sidebar .sidebar-theme{display:flex}}
