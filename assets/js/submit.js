@@ -78,7 +78,7 @@
       });
       grip.addEventListener('pointermove', event => {
         if (!grip.hasPointerCapture(event.pointerId)) return;
-        control.style.height = Math.max(76, startHeight + event.clientY - startY) + 'px';
+        control.style.height = Math.max(48, startHeight + event.clientY - startY) + 'px';
       });
       grip.addEventListener('pointerup', event => {
         if (grip.hasPointerCapture(event.pointerId)) grip.releasePointerCapture(event.pointerId);
