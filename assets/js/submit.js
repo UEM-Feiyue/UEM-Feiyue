@@ -57,16 +57,6 @@
       fields.append(wrapper);
       controls.set(field.name, control);
     }
-    // Keep long-form fields readable without an internal scrollbar.
-    const resizeTextarea = control => {
-      control.style.height = 'auto';
-      control.style.height = control.scrollHeight + 'px';
-    };
-    for (const control of controls.values()) {
-      if (control.tagName !== 'TEXTAREA') continue;
-      control.addEventListener('input', () => resizeTextarea(control));
-      resizeTextarea(control);
-    }
     const year = controls.get('year');
     year.addEventListener('input', () => {
       const clean = year.value.replace(/[^0-9]/g, '').slice(0, 4);
@@ -108,8 +98,7 @@
       draftStatus.textContent = '草稿已清空，尚未提交。';
       requestAnimationFrame(() => {
         updateCategory();
-        for (const control of controls.values()) if (control.tagName === 'TEXTAREA') resizeTextarea(control);
-      });
+          });
     });
     const addInline = (parent, source) => {
       const parts = source.split(/(\*\*[^*]+\*\*|\[[^\]]+\]\(https?:\/\/[^ )]+\))/g);
