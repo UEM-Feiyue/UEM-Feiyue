@@ -20,7 +20,8 @@
 
 .demo-badge{display:inline-block;color:var(--accent);background:var(--soft);font-size:11px;font-weight:700;border-radius:6px;padding:2px 8px;margin:5px 0}
 
-.article-more{display:inline-flex;gap:6px;align-items:center;color:var(--accent);font-weight:650;font-size:13px;margin-top:12px}.article-toc .toc-depth-3{margin-left:16px}.article-toc a{color:var(--muted);text-decoration:none}.article-toc a:hover{color:var(--accent)}\n/* Archive-first layout: category navigation lives in the sidebar, not repeated cards. */
+.article-more{display:inline-flex;gap:6px;align-items:center;color:var(--accent);font-weight:650;font-size:13px;margin-top:12px}.article-toc .toc-depth-3{margin-left:16px}.article-toc a{color:var(--muted);text-decoration:none}.article-toc a:hover{color:var(--accent)}
+/* Archive-first layout: category navigation lives in the sidebar, not repeated cards. */
 .archive-intro{padding:clamp(38px,6vw,76px) 0 26px}.archive-intro h1{font-family:Georgia,"Songti SC",serif;font-size:clamp(32px,4vw,49px);font-weight:500;line-height:1.25;letter-spacing:-.035em;margin:12px 0}.archive-intro .lead{font-size:15px;margin:0}.archive-intro+.section{padding-top:28px}.archive-intro+.section .section-heading{margin-bottom:22px}@media(max-width:580px){.archive-intro{padding:36px 0 18px}.archive-intro+.section{padding-top:20px}}
 
 /* Compact, page-specific guidance and single sidebar contribution entry. */
@@ -144,4 +145,4 @@ body{
 /* Native cross-document transitions: light enhancement, no SPA dependency. */
 @view-transition{navigation:auto}
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.16s;animation-timing-function:ease-in-out}
-@media(prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation-duration:0s}}
+@media(prefers-reduced-motion:reduce){@view-transition{navigation:none}}

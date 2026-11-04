@@ -4,21 +4,33 @@
 
 ## 本地预览
 
-```sh
-python3 -m pip install -r requirements.txt
-python3 scripts/build.py
-python3 -m http.server 8000
+```powershell
+py -3 preview.py
 ```
 
-访问 http://localhost:8000/ 。提交表单目前仅提供本地预览，**尚未连接 GitHub Issues**，不会真正投稿。
+macOS / Linux 使用 `python3 preview.py`。访问 <http://127.0.0.1:8765/>；保存内容后自动构建，刷新浏览器查看。仅构建使用 `py -3 preview.py --build-only`。初次运行会按需安装本项目依赖到 `.venv/`；不用额外启动源码目录服务器。
 
-## 文章内容
+投稿表单目前仅提供预览与标签页草稿，**尚未连接 GitHub Issues**，不会真正投稿。联系方式不会写入草稿。
 
-Markdown 存于 `content/`，格式参见 `content/README.md`。运行 `scripts/build.py` 生成 `articles/*.html` 和 `data/articles.json`。当前不含虚构投稿。构建时依赖 Markdown、PyYAML 和 bleach；浏览器端不依赖前端框架。
+## 页面与内容
 
-## 部署
+- 根目录 `index.html` 和 `submit.html` 直接维护首页与投稿界面。文章构建复用首页的导航、顶部栏和页脚，不需要维护额外模板目录。
+- `content/` 保存 Markdown，格式见 [content/README.md](content/README.md)。演示文章继续明确标注，不代表真实投稿。
+- `data/schema.json` 统一分类和字段规则；浏览器表单与 Python 构建都据此校验。扩展字段时先修改此处，再调整业务处理。
+- `scripts/site_build.py` 在隔离目录中生成文章、列表和发布数据。文章列表、分类导航和页脚均在构建时输出；JavaScript 增强筛选和交互。
+- `_site/` 是完整静态产物；只发布页面、资源和明确允许的公开数据，不上传源码根目录。
 
-`main` 推送后，GitHub Actions 构建并发布到 GitHub Pages。需要在仓库 Settings → Pages 中将 Source 设置为 **GitHub Actions**。请以 Actions 的实际结果确认部署是否成功。
+## 验证与部署
+
+```sh
+python3 -m unittest discover -s tests -t . -p 'test_*.py' -v
+python3 preview.py --build-only
+python3 -m pip install -r requirements-dev.txt
+python3 -m playwright install chromium
+python3 tests/browser_smoke.py
+```
+
+`main` 推送后，GitHub Actions 构建并发布 `_site/`；Pages Source 应设为 GitHub Actions。Vercel 复用同一构建入口与目录。实际部署是否成功以对应平台结果为准。
 
 ## 原则
 
@@ -28,3 +40,5 @@ Markdown 存于 `content/`，格式参见 `content/README.md`。运行 `scripts/
 - 只保留四个方向；文章本身承载经验，不另设指南分类。
 - 联系方式为可选项；未来 Issue 投稿会公开显示所有提交字段。
 - 只有 Close as completed 才应触发后续自动发布，且需验证事件来源及内容。
+
+首页与分类列表在当前页面切换，地址和浏览器前进后退保持可用，筛选状态随历史记录恢复。文章与投稿保留独立页面；动画遵循系统的减少动态效果设置。
