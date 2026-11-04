@@ -66,14 +66,14 @@
     },
     {
       "name": "destination",
-      "label": "最终去向 / 当前目标",
+      "label": "最终去向",
       "type": "text",
       "maxLength": 160,
       "placeholders": {
-        "kaoyan": "录取院校 / 专业，尚未确定可填写当前目标",
-        "overseas": "录取院校 / 项目，尚未确定可填写当前目标",
-        "career": "入职企业 / 岗位，尚未确定可填写当前目标",
-        "public": "录用单位 / 岗位，尚未确定可填写当前目标"
+        "kaoyan": "录取院校 / 专业",
+        "overseas": "录取院校 / 项目",
+        "career": "入职企业 / 岗位",
+        "public": "录用单位 / 岗位"
       },
       "required": true
     },
