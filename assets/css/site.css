@@ -10,3 +10,6 @@
 
 /* Archive-first layout: category navigation lives in the sidebar, not repeated cards. */
 .archive-intro{padding:clamp(38px,6vw,76px) 0 26px}.archive-intro h1{font-family:Georgia,"Songti SC",serif;font-size:clamp(32px,4vw,49px);font-weight:500;line-height:1.25;letter-spacing:-.035em;margin:12px 0}.archive-intro .lead{font-size:15px;margin:0}.archive-intro+.section{padding-top:28px}.archive-intro+.section .section-heading{margin-bottom:22px}@media(max-width:580px){.archive-intro{padding:36px 0 18px}.archive-intro+.section{padding-top:20px}}
+
+/* Compact, page-specific guidance and single sidebar contribution entry. */
+.sidebar-bottom{padding-top:16px;border-top:1px solid var(--line)}.nav-submit[aria-current=page]{background:var(--soft)}.submit-intro{padding:42px 0 24px}.submit-intro h1{font-family:Georgia,"Songti SC",serif;font-size:clamp(30px,3.6vw,44px);margin:10px 0}.submit-intro .lead{font-size:14px;margin:0}.archive-intro{padding-top:42px;padding-bottom:14px}.archive-intro h1{margin:8px 0}.archive-intro+.section{padding-top:18px}.article-page{padding-top:38px}@media(max-width:580px){.submit-intro,.archive-intro{padding-top:26px}.article-page{padding-top:25px}}

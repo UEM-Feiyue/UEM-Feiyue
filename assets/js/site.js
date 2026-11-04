@@ -41,6 +41,11 @@
     const grid = document.querySelector('#category-grid');
     const selected = new URLSearchParams(location.search).get('category');
     const activeCategory = schema.categories.some(item => item.id === selected) ? selected : 'all';
+    const current = schema.categories.find(item => item.id === activeCategory);
+    const heading = document.querySelector('#stories-heading');
+    const intro = document.querySelector('#category-intro');
+    if (heading && current) heading.textContent = current.label + '经历';
+    if (intro && current) intro.textContent = current.description + '，阅读同学的经验分享。';
     const year = document.querySelector('#year-filter');
     const search = document.querySelector('#search');
     const results = document.querySelector('#articles');
