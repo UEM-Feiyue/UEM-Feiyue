@@ -37,7 +37,7 @@
       if (field.placeholder) control.placeholder = field.placeholder;
       if (field.inputMode) control.inputMode = field.inputMode;
       if (field.pattern) control.pattern = field.pattern;
-      if (field.type === 'textarea') control.rows = field.name === 'body' ? 12 : 3;
+      if (field.type === 'textarea') control.rows = field.name === 'body' ? 4 : 2;
       wrapper.append(label);
       if (field.suffix) {
         const inputRow = make('div');
