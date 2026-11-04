@@ -60,7 +60,7 @@
       const a = el('a', '', item.label);
       a.href = base + '?category=' + encodeURIComponent(item.id);
       a.dataset.category = item.id;
-      nav.append(a);
+      nav.insertBefore(a, nav.querySelector('.nav-contribute'));
     }
     if (!results) return;
 
