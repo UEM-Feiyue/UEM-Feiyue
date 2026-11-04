@@ -14,7 +14,14 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content"
 OUTPUT = ROOT / "articles"
 INDEX = ROOT / "data" / "articles.json"
-CATEGORIES = {item["id"]: item["label"] for item in json.loads((ROOT / "data" / "schema.json").read_text(encoding="utf-8"))["categories"]}
+SCHEMA = json.loads((ROOT / "data" / "schema.json").read_text(encoding="utf-8"))
+CATEGORIES = {item["id"]: item["label"] for item in SCHEMA["categories"]}
+YEAR_SUFFIX = next(field.get("suffix", "") for field in SCHEMA["fields"] if field["name"] == "year")
+
+
+def display_year(value):
+    value = str(value).strip()
+    return value + (" " + YEAR_SUFFIX if re.fullmatch(r"[0-9]{4}", value) else "")
 ALLOWED_TAGS = set(bleach.sanitizer.ALLOWED_TAGS) | {"p", "h2", "h3", "h4", "pre", "code", "blockquote", "hr", "br", "img", "table", "thead", "tbody", "tr", "th", "td"}
 ALLOWED_ATTRS = {"a": ["href", "title"], "img": ["src", "alt", "title"], "th": ["align"], "td": ["align"], "h2": ["id"], "h3": ["id"]}
 
@@ -30,6 +37,9 @@ def parse(path):
     for key in ("title", "category", "author", "year"):
         if not isinstance(meta.get(key), (str, int)) or not str(meta[key]).strip():
             raise ValueError(f"{path}: missing {key}")
+    if not re.fullmatch(r"[0-9]{4}", str(meta["year"]).strip()):
+        raise ValueError(f"{path}: year must be a four-digit graduation year")
+    meta["year"] = str(meta["year"]).strip()
     if meta["category"] not in CATEGORIES:
         raise ValueError(f"{path}: unknown category {meta['category']}")
     body = match.group(2).strip()
@@ -45,7 +55,7 @@ def render(meta, body, url):
     rendered = markdown.markdown(html.escape(body), extensions=["extra", "toc"])
     clean = bleach.clean(rendered, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRS, protocols=["http", "https", "mailto"], strip=True)
     title = html.escape(str(meta["title"]))
-    byline = " · ".join(html.escape(str(meta[k])) for k in ("author", "year", "major") if meta.get(k))
+    byline = " · ".join(html.escape(display_year(meta[k]) if k == "year" else str(meta[k])) for k in ("author", "year", "major") if meta.get(k))
     headings = re.findall(r'<h([23]) id="([^"]+)">(.+?)</h[23]>', clean)
     toc = '<nav class="article-toc" aria-label="文章目录"><strong>本页目录</strong><ul>' + ''.join(f'<li class="toc-depth-{level}"><a href="#{html.escape(anchor, quote=True)}">{text}</a></li>' for level, anchor, text in headings) + '</ul></nav>' if len(headings) >= 2 else ''
     demo = '<span class="demo-badge">演示内容 · 非真实投稿</span>' if meta.get('demo') is True else ''

@@ -38,41 +38,54 @@
     },
     {
       "name": "year",
-      "label": "毕业届次",
+      "label": "本科毕业届次",
       "type": "text",
       "required": true,
-      "maxLength": 20,
-      "placeholder": "例如 2026 届"
+      "maxLength": 4,
+      "placeholder": "例如 2026",
+      "inputMode": "numeric",
+      "pattern": "[0-9]{4}",
+      "suffix": "届",
+      "hint": "仅填写四位毕业年份，无需输入「届」字。"
     },
     {
       "name": "school",
       "label": "学院",
       "type": "text",
-      "maxLength": 80
+      "maxLength": 80,
+      "placeholder": "填写就读时的学院名称（可选）"
     },
     {
       "name": "major",
       "label": "本科专业",
       "type": "text",
-      "maxLength": 80
+      "maxLength": 80,
+      "placeholder": "填写本科专业（可选）"
     },
     {
       "name": "destination",
-      "label": "最终去向 / 目标",
+      "label": "最终去向",
       "type": "text",
-      "maxLength": 160
+      "maxLength": 160,
+      "placeholders": {
+        "kaoyan": "录取院校 / 专业（可选）",
+        "overseas": "录取院校 / 项目（可选）",
+        "career": "入职企业 / 岗位（可选）",
+        "public": "录用单位 / 岗位（可选）"
+      }
     },
     {
       "name": "background",
-      "label": "个人背景（选填）",
+      "label": "个人背景",
       "type": "textarea",
       "placeholder": "成绩、语言、科研、竞赛、实习等与经历相关的信息"
     },
     {
       "name": "contact",
-      "label": "联系方式（选填）",
+      "label": "联系方式",
       "type": "textarea",
-      "placeholder": "邮箱、微信、QQ、GitHub、个人主页等"
+      "placeholder": "邮箱、微信、QQ、GitHub、个人主页等",
+      "hint": "仅填写愿意公开的信息，未来正式投稿将公开展示。"
     },
     {
       "name": "body",
