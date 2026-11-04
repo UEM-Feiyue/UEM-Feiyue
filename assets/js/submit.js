@@ -23,6 +23,8 @@
     }
     category.required = true;
     const controls = new Map();
+    let bodyPreview = null;
+    let bodyPreviewButton = null;
     for (const field of schema.fields) {
       const wrapper = make('div');
       wrapper.className = 'field';
@@ -60,7 +62,7 @@
         toolbar.setAttribute('role', 'toolbar');
         toolbar.setAttribute('aria-label', '正文排版快捷操作');
         const actions = [
-          ['二级标题', 'h2'], ['三级标题', 'h3'], ['加粗', 'bold'],
+          ['正文', 'plain'], ['二级标题', 'h2'], ['三级标题', 'h3'], ['加粗', 'bold'],
           ['无序列表', 'ul'], ['有序列表', 'ol'], ['引用', 'quote'], ['链接', 'link']
         ];
         const apply = kind => {
@@ -69,7 +71,15 @@
           const selected = control.value.slice(start, end);
           const lineStart = control.value.lastIndexOf('\n', start - 1) + 1;
           let from = start, to = end, replacement = '', selectStart = 0, selectEnd = 0;
-          if (kind === 'bold' || kind === 'link') {
+          if (kind === 'plain') {
+            from = lineStart;
+            const before = control.value.slice(from, start);
+            const prefix = /^(?:#{2,3} |[-*] |\d+\. |> )/.exec(before)?.[0] || '';
+            if (!prefix) { control.focus(); return; }
+            replacement = before.slice(prefix.length) + selected;
+            selectStart = before.length - prefix.length;
+            selectEnd = selectStart + selected.length;
+          } else if (kind === 'bold' || kind === 'link') {
             const sample = selected || (kind === 'bold' ? '加粗文字' : '链接文字');
             replacement = kind === 'bold' ? '**' + sample + '**' : '[' + sample + '](https://)';
             selectStart = kind === 'bold' ? 2 : 1;
@@ -93,10 +103,35 @@
           action.type = 'button';
           action.className = 'markdown-action';
           action.setAttribute('aria-label', label);
-          action.addEventListener('click', () => apply(kind));
+          action.addEventListener('click', () => {
+            if (bodyPreview && !bodyPreview.hidden) bodyPreviewButton.click();
+            apply(kind);
+          });
           toolbar.append(action);
         }
+        bodyPreview = make('div');
+        bodyPreview.className = 'markdown-preview article-body';
+        bodyPreview.hidden = true;
+        bodyPreview.setAttribute('aria-label', '正文排版预览');
+        bodyPreviewButton = make('button', '预览排版');
+        bodyPreviewButton.type = 'button';
+        bodyPreviewButton.className = 'markdown-action markdown-preview-toggle';
+        bodyPreviewButton.setAttribute('aria-pressed', 'false');
+        bodyPreviewButton.addEventListener('click', () => {
+          const showing = bodyPreview.hidden;
+          if (showing) renderMarkdown(control.value, bodyPreview);
+          bodyPreview.hidden = !showing;
+          control.closest('.textarea-holder').hidden = showing;
+          bodyPreviewButton.textContent = showing ? '返回编辑' : '预览排版';
+          bodyPreviewButton.setAttribute('aria-pressed', String(showing));
+          if (!showing) control.focus();
+        });
+        toolbar.append(bodyPreviewButton);
         wrapper.insertBefore(toolbar, control);
+        control.after(bodyPreview);
+        const guidance = make('small', '点击上方格式按钮插入 Markdown；选择「预览排版」查看最终效果，可随时返回修改。');
+        guidance.className = 'field-hint';
+        wrapper.append(guidance);
       }
       fields.append(wrapper);
       controls.set(field.name, control);
@@ -180,6 +215,7 @@
     updateCategory();
     const save = () => {
       hidePreview();
+      if (bodyPreview && !bodyPreview.hidden) renderMarkdown(controls.get('body').value, bodyPreview);
       try {
         const values = Object.fromEntries(new FormData(form));
         delete values.contact;
@@ -190,11 +226,12 @@
     form.addEventListener('change', save);
     form.addEventListener('reset', () => {
       hidePreview();
+      if (bodyPreview && !bodyPreview.hidden) bodyPreviewButton.click();
       try { sessionStorage.removeItem(draftKey); } catch {}
       draftStatus.textContent = '草稿已清空，尚未提交。';
       requestAnimationFrame(() => {
         updateCategory();
-          });
+      });
     });
     const addInline = (parent, source) => {
       const parts = source.split(/(\*\*[^*]+\*\*|\[[^\]]+\]\(https?:\/\/[^ )]+\))/g);
