@@ -11,6 +11,16 @@ spec.loader.exec_module(build)
 
 
 class SubmissionBuildTests(unittest.TestCase):
+    def test_shared_background_and_simple_homepage(self):
+        stylesheet = (ROOT / "assets/css/site.css").read_text(encoding="utf-8")
+        homepage = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn('url("../images/anguo-garden.jpg")', stylesheet)
+        self.assertIn("--photo-tint", stylesheet)
+        self.assertIn("--reading-bg", stylesheet)
+        self.assertNotIn("hero-visual", homepage)
+        self.assertNotIn("hero-paths", homepage)
+        self.assertIn('class="hero-corner"', homepage)
+
     def test_published_article_brand_assets(self):
         meta = {"category": "career", "author": "同学", "year": "2026", "destination": "企业"}
         page = build.render(meta, "## 正文", "articles/example.html")
