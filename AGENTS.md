@@ -8,5 +8,5 @@
 6. No hidden submission side effects. Never claim a submission succeeded until the backend confirms it.
 7. Public GitHub Issues expose submitted content including optional contact details. Show a plain-language warning next to the form.
 8. Use semantic markup, keyboard-accessible controls, responsive layouts, reduced-motion support, and readable contrast.
-9. Changes should solve root causes, not accumulate patches. Prefer one coherent PR per engineering milestone, with tests before merging.
-10. Commit messages record maintenance; PRs record meaningful engineering milestones.
+9. Changes should solve root causes, not accumulate patches. Commit coherent milestones directly to main during the initial build phase; PRs are not required.
+10. The emergency-blue palette is a custom interpretation until official UEM visual identity color values are verified.

@@ -1,33 +1,30 @@
 # UEM Feiyue · 应急管理大学飞跃手册
 
-由同学共同维护的考研、留学、就业、考公考编经历分享站。
+由同学共同维护的考研、留学、就业、考公考编经历分享站。视觉以「应急蓝」为主，采用原创蓝色系设计变量（**非经校方确认的标准色值**）。
 
 ## 本地预览
 
 ```sh
+python3 -m pip install -r requirements.txt
+python3 scripts/build.py
 python3 -m http.server 8000
 ```
 
-访问 http://localhost:8000/ 。目前为第一阶段：静态界面、筛选、主题和投稿表单结构；尚未接入 GitHub Issue 投稿或发布工作流。不要将尚未接入的功能标记为已上线。
+访问 http://localhost:8000/ 。提交表单目前仅提供本地预览，**尚未连接 GitHub Issues**，不会真正投稿。
+
+## 文章内容
+
+Markdown 存于 `content/`，格式参见 `content/README.md`。运行 `scripts/build.py` 生成 `articles/*.html` 和 `data/articles.json`。当前不含虚构投稿。构建时依赖 Markdown、PyYAML 和 bleach；浏览器端不依赖前端框架。
+
+## 部署
+
+`main` 推送后，GitHub Actions 构建并发布到 GitHub Pages。需要在仓库 Settings → Pages 中将 Source 设置为 **GitHub Actions**。请以 Actions 的实际结果确认部署是否成功。
 
 ## 原则
 
 - Every line of code should justify its existence.
 - Define once. Reuse everywhere.
-- 内容优先、原生优先、无前端构建依赖。
+- 内容优先、原生优先、尽可能少的运行时依赖。
 - 只保留四个方向；文章本身承载经验，不另设指南分类。
-- 联系方式为可选项，投稿前提示 GitHub Issue 公开可见。
-- 后续接入 Issue 审核时，只有 Close as completed 才触发发布，且需验证事件来源及内容。
-
-## 结构
-
-- `index.html`：首页与四个分类的统一入口
-- `submit.html`：投稿界面（当前未启用实际提交）
-- `assets/css/site.css`：全站样式
-- `assets/js/site.js`：导航、主题、筛选
-- `assets/js/submit.js`：投稿字段与预览
-- `data/schema.json`：方向及表单字段的单一来源
-- `data/articles.json`：文章索引（目前为空）
-- `AGENTS.md`：维护约束
-
-下一阶段：统一 Markdown 文章渲染和自动索引，再接入 Cloudflare Worker → GitHub Issue → 审核发布闭环。
+- 联系方式为可选项；未来 Issue 投稿会公开显示所有提交字段。
+- 只有 Close as completed 才应触发后续自动发布，且需验证事件来源及内容。
