@@ -51,6 +51,7 @@
   const selected = params.get('category');
   const archive = document.querySelector('#archive-section');
   const isHome = Boolean(archive) && !selected && params.get('view') !== 'all';
+  document.querySelector('.page')?.classList.toggle('is-home', isHome);
   document.querySelector('#home-intro')?.toggleAttribute('hidden', !isHome);
   document.querySelector('#archive-intro')?.toggleAttribute('hidden', isHome);
   if (archive) archive.hidden = isHome;
