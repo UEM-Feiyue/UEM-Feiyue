@@ -60,7 +60,7 @@ def display_title(meta):
 
 def render(meta, body, url):
     # Escape inline HTML before Markdown conversion; sanitize generated HTML too.
-    rendered = markdown.markdown(html.escape(body), extensions=["extra", "toc", "sane_lists"])
+    rendered = markdown.markdown(html.escape(body), extensions=["extra", "toc", "sane_lists", "pymdownx.tilde", "pymdownx.tasklist"])
     clean = bleach.clean(rendered, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRS, protocols=["http", "https", "mailto"], strip=True)
     title = html.escape(display_title(meta))
     byline = " · ".join(html.escape(display_year(meta[k]) if k == "year" else str(meta[k])) for k in ("author", "year", "major") if meta.get(k))
