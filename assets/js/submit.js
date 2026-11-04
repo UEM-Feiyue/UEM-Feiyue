@@ -57,6 +57,36 @@
       fields.append(wrapper);
       controls.set(field.name, control);
     }
+    // Touch browsers do not expose the native textarea resize grip.
+    for (const control of controls.values()) {
+      if (control.tagName !== 'TEXTAREA') continue;
+      const grip = make('button', '↘');
+      grip.type = 'button';
+      grip.className = 'textarea-grip';
+      grip.setAttribute('aria-label', '拖动调整' + control.previousElementSibling?.textContent + '高度');
+      const holder = make('div');
+      holder.className = 'textarea-holder';
+      control.replaceWith(holder);
+      holder.append(control, grip);
+      let startY = 0, startHeight = 0;
+      grip.addEventListener('pointerdown', event => {
+        if (event.button !== 0) return;
+        startY = event.clientY;
+        startHeight = control.getBoundingClientRect().height;
+        grip.setPointerCapture(event.pointerId);
+        event.preventDefault();
+      });
+      grip.addEventListener('pointermove', event => {
+        if (!grip.hasPointerCapture(event.pointerId)) return;
+        control.style.height = Math.max(76, startHeight + event.clientY - startY) + 'px';
+      });
+      grip.addEventListener('pointerup', event => {
+        if (grip.hasPointerCapture(event.pointerId)) grip.releasePointerCapture(event.pointerId);
+      });
+      grip.addEventListener('pointercancel', event => {
+        if (grip.hasPointerCapture(event.pointerId)) grip.releasePointerCapture(event.pointerId);
+      });
+    }
     const year = controls.get('year');
     year.addEventListener('input', () => {
       const clean = year.value.replace(/[^0-9]/g, '').slice(0, 4);
