@@ -10,3 +10,5 @@
 8. Use semantic markup, keyboard-accessible controls, responsive layouts, reduced-motion support, and readable contrast.
 9. Browser previews and published pages must use consistent Markdown structures and the shared `.article-body` CSS; any parser differences must be documented rather than hidden. Changes should solve root causes, not accumulate patches. Commit coherent milestones directly to main during the initial build phase; PRs are not required.
 10. The emergency-blue palette is a custom interpretation until official UEM visual identity color values are verified.
+
+11. Use `assets/icons/favicon.svg` for all browser favicons, `assets/images/favicon-横版.png` for shared header branding, and `assets/images/anguo-garden.jpg` for the photographically layered page background. Keep image references consistent on root and generated article pages.

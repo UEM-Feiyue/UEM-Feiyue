@@ -52,3 +52,10 @@ a:is(:hover,:focus-visible) .link-arrow{transform:translateX(3px) rotate(45deg)}
 
 /* Form demo controls and published article typography share the same article-body rules. */
 .demo-actions{display:flex;gap:8px;flex-wrap:wrap}.preview #preview-text>h1{font-family:Georgia,"Songti SC",serif;font-size:clamp(27px,3.5vw,42px);line-height:1.3;margin:12px 0}.preview .article-byline{color:var(--muted);font-size:14px}.article-body h1{font-size:clamp(27px,3.5vw,38px);line-height:1.4;margin-top:42px}.article-body del{text-decoration:line-through}.article-body input[type="checkbox"]{margin-right:8px}
+
+/* Shared brand artwork and photographic page atmosphere. */
+.brand{margin-bottom:48px;min-height:52px}.brand-logo{display:block;width:100%;height:auto;max-width:215px;object-fit:contain}.mobile-brand-logo{display:block;width:150px;max-width:100%;height:auto;object-fit:contain}.mobile-brand{min-width:0;max-width:calc(100% - 64px)}
+.page{background:linear-gradient(180deg,rgba(247,249,252,.88),rgba(247,249,252,.96) 700px,var(--bg) 1200px),url("../images/anguo-garden.jpg") center top / 100% auto no-repeat}
+[data-theme=dark] .page{background:linear-gradient(180deg,rgba(11,20,36,.83),rgba(11,20,36,.95) 700px,var(--bg) 1200px),url("../images/anguo-garden.jpg") center top / 100% auto no-repeat}
+@media(max-width:900px){.brand-logo{max-width:100%}.mobile-brand-logo{width:142px}.page{background-size:auto,auto 620px;background-position:center top}}
+@media(max-width:580px){.mobile-brand-logo{width:128px}}

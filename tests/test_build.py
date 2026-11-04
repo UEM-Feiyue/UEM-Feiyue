@@ -11,6 +11,12 @@ spec.loader.exec_module(build)
 
 
 class SubmissionBuildTests(unittest.TestCase):
+    def test_published_article_brand_assets(self):
+        meta = {"category": "career", "author": "同学", "year": "2026", "destination": "企业"}
+        page = build.render(meta, "## 正文", "articles/example.html")
+        self.assertIn('../assets/icons/favicon.svg', page)
+        self.assertIn('../assets/images/favicon-横版.png', page)
+
     def test_no_redundant_title_field(self):
         schema = json.loads((ROOT / "data/schema.json").read_text(encoding="utf-8"))
         names = {field["name"] for field in schema["fields"]}
