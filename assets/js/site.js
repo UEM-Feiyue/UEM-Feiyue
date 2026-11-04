@@ -1,13 +1,27 @@
 (() => {
+  // The saved theme is applied before CSS in theme-init.js, not during first paint.
   const root = document.documentElement;
-  let saved;
-  try { saved = localStorage.getItem('uem-theme'); } catch {}
-  if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
-  document.querySelectorAll('#theme-toggle, #theme-toggle-mobile').forEach(theme => theme.addEventListener('click', () => {
+  const syncThemeControls = () => {
+    const dark = root.dataset.theme === 'dark';
+    document.querySelectorAll('#theme-toggle, #theme-toggle-mobile').forEach(button => {
+      button.setAttribute('aria-label', dark ? '切换明亮主题' : '切换暗黑主题');
+      button.setAttribute('aria-pressed', String(dark));
+    });
+  };
+  document.querySelectorAll('#theme-toggle, #theme-toggle-mobile').forEach(button => button.addEventListener('click', () => {
     const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
     root.dataset.theme = next;
     try { localStorage.setItem('uem-theme', next); } catch {}
+    syncThemeControls();
   }));
+  window.addEventListener('storage', event => {
+    if (event.key !== 'uem-theme') return;
+    if (event.newValue === 'dark' || event.newValue === 'light') root.dataset.theme = event.newValue;
+    else delete root.dataset.theme;
+    syncThemeControls();
+  });
+  window.addEventListener('pageshow', syncThemeControls);
+  syncThemeControls();
 
   const sidebar = document.querySelector('#sidebar');
   const toggle = document.querySelector('#menu-toggle');
@@ -81,7 +95,7 @@
     bottom.append(github);
     grid.append(identity, linksSection);
     inner.append(grid, bottom);
-    footer.append(inner);
+    footer.replaceChildren(inner);
   }
   const nav = document.querySelector('#category-nav');
   const params = new URLSearchParams(location.search);

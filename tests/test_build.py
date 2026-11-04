@@ -11,20 +11,21 @@ spec.loader.exec_module(build)
 
 
 class SubmissionBuildTests(unittest.TestCase):
-    def test_shared_background_and_simple_homepage(self):
+    def test_unified_theme_background_and_footer(self):
         stylesheet = (ROOT / "assets/css/site.css").read_text(encoding="utf-8")
         homepage = (ROOT / "index.html").read_text(encoding="utf-8")
+        submission = (ROOT / "submit.html").read_text(encoding="utf-8")
         self.assertIn('url("../images/anguo-garden.jpg")', stylesheet)
-        self.assertIn("--photo-tint", stylesheet)
-        self.assertIn("--reading-line", stylesheet)
-        self.assertNotIn("--reading-bg", stylesheet)
+        self.assertIn("--photo-overlay", stylesheet)
+        self.assertNotIn(".page.is-home{background-image:", stylesheet)
+        self.assertIn("body{", stylesheet)
+        self.assertIn("background:var(--footer-surface)", stylesheet)
+        for page in (homepage, submission):
+            self.assertIn('data-site-footer', page)
+            self.assertIn('assets/js/theme-init.js', page)
         self.assertNotIn("hero-visual", homepage)
-        self.assertNotIn("hero-paths", homepage)
-        self.assertIn('data-site-footer', homepage)
-        self.assertIn('data-site-footer', (ROOT / 'submit.html').read_text(encoding='utf-8'))
-        self.assertIn('class="site-footer"', homepage)
-        self.assertNotIn('class="hero-corner"', homepage)
-        self.assertIn('background:transparent;min-height', stylesheet)
+        self.assertNotIn("hero-corner", homepage)
+        self.assertIn('theme-init.js', build.render({"category": "career", "author": "同学", "year": "2026", "destination": "企业"}, "## 正文", "articles/test.html"))
 
     def test_published_article_brand_assets(self):
         meta = {"category": "career", "author": "同学", "year": "2026", "destination": "企业"}
