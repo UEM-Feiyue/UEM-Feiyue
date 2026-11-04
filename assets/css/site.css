@@ -7,3 +7,6 @@
 
 /* Reusable arrow motion and reading affordances */
 .arrow-icon,.category-arrow,.nav-submit span,.top-submit span,.text-link span{display:inline-block;transition:transform .2s ease}.category-card:hover .category-arrow,.nav-submit:hover span,.top-submit:hover span,.text-link:hover span,.article-more:hover .arrow-icon{transform:translate(3px,-3px)}.article-more{display:inline-flex;gap:6px;align-items:center;color:var(--accent);font-weight:650;font-size:13px;margin-top:12px}.article-toc .toc-depth-3{margin-left:16px}.article-toc a{color:var(--muted);text-decoration:none}.article-toc a:hover{color:var(--accent)}@media(prefers-reduced-motion:reduce){.arrow-icon,.category-arrow,.nav-submit span,.top-submit span,.text-link span{transition:none}.category-card:hover{transform:none}}
+
+/* Archive-first layout: category navigation lives in the sidebar, not repeated cards. */
+.archive-intro{padding:clamp(38px,6vw,76px) 0 26px}.archive-intro h1{font-family:Georgia,"Songti SC",serif;font-size:clamp(32px,4vw,49px);font-weight:500;line-height:1.25;letter-spacing:-.035em;margin:12px 0}.archive-intro .lead{font-size:15px;margin:0}.archive-intro+.section{padding-top:28px}.archive-intro+.section .section-heading{margin-bottom:22px}@media(max-width:580px){.archive-intro{padding:36px 0 18px}.archive-intro+.section{padding-top:20px}}

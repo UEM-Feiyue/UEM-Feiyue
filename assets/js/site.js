@@ -39,7 +39,8 @@
   Promise.all([load('data/schema.json'), load('data/articles.json')]).then(([schema, articles]) => {
     const nav = document.querySelector('#category-nav');
     const grid = document.querySelector('#category-grid');
-    const select = document.querySelector('#category-filter');
+    const selected = new URLSearchParams(location.search).get('category');
+    const activeCategory = schema.categories.some(item => item.id === selected) ? selected : 'all';
     const year = document.querySelector('#year-filter');
     const search = document.querySelector('#search');
     const results = document.querySelector('#articles');
@@ -55,21 +56,15 @@
         card.append(el('span', 'category-name', item.label), el('span', 'category-desc', item.description), el('span', 'category-arrow', '↗'));
         grid.append(card);
       }
-      if (select) {
-        const option = el('option', '', item.label);
-        option.value = item.id;
-        select.append(option);
-      }
+
     }
     if (!results) return;
-    const params = new URLSearchParams(location.search);
-    const selected = params.get('category');
-    if (schema.categories.some(item => item.id === selected)) select.value = selected;
+
     const years = [...new Set(articles.map(item => String(item.year || '')).filter(Boolean))].sort().reverse();
     years.forEach(value => { const option = el('option', '', value); option.value = value; year.append(option); });
     const render = () => {
       const query = search.value.trim().toLocaleLowerCase();
-      const visible = articles.filter(item => (select.value === 'all' || item.category === select.value) && (year.value === 'all' || String(item.year) === year.value) && [item.title, item.author, item.major, item.destination, item.excerpt, ...(item.tags || [])].join(' ').toLocaleLowerCase().includes(query));
+      const visible = articles.filter(item => (activeCategory === 'all' || item.category === activeCategory) && (year.value === 'all' || String(item.year) === year.value) && [item.title, item.author, item.major, item.destination, item.excerpt, ...(item.tags || [])].join(' ').toLocaleLowerCase().includes(query));
       results.replaceChildren();
       count.textContent = visible.length + ' 篇经历' + (visible.some(item => item.demo) ? ' · 含演示内容' : '');
       if (!visible.length) {
@@ -94,17 +89,11 @@
         results.append(article);
       }
       nav.querySelectorAll('[data-category]').forEach(a => a.removeAttribute('aria-current'));
-      nav.querySelector('[data-category="' + select.value + '"]')?.setAttribute('aria-current', 'page');
+      nav.querySelector('[data-category="' + activeCategory + '"]')?.setAttribute('aria-current', 'page');
     };
     search.addEventListener('input', render);
     year.addEventListener('change', render);
-    select.addEventListener('change', () => {
-      const url = new URL(location.href);
-      if (select.value === 'all') url.searchParams.delete('category');
-      else url.searchParams.set('category', select.value);
-      history.replaceState(null, '', url);
-      render();
-    });
+
     render();
   }).catch(() => {
     const results = document.querySelector('#articles');
