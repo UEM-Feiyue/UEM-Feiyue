@@ -58,16 +58,40 @@
       controls.set(field.name, control);
     }
     // Touch browsers do not expose the native textarea resize grip.
+    // Size each field to its wrapped placeholder, leaving room for the drag handle.
+    // Never allow the handle to cover the placeholder when dragged upward.
     for (const control of controls.values()) {
       if (control.tagName !== 'TEXTAREA') continue;
       const grip = make('button', '↘');
       grip.type = 'button';
       grip.className = 'textarea-grip';
-      grip.setAttribute('aria-label', '拖动调整' + control.previousElementSibling?.textContent + '高度');
+      grip.setAttribute('aria-label', '拖动调整输入框高度');
       const holder = make('div');
       holder.className = 'textarea-holder';
       control.replaceWith(holder);
       holder.append(control, grip);
+      let minimum = 0;
+      let manuallyResized = false;
+      const measure = () => {
+        const probe = control.cloneNode();
+        probe.value = '';
+        probe.rows = 1;
+        probe.style.height = 'auto';
+        probe.style.minHeight = '0';
+        probe.style.position = 'absolute';
+        probe.style.visibility = 'hidden';
+        probe.style.pointerEvents = 'none';
+        probe.style.resize = 'none';
+        holder.append(probe);
+        // scrollHeight accounts for wrapped placeholder text and textarea padding.
+        minimum = Math.ceil(probe.scrollHeight + 14);
+        probe.remove();
+        control.style.minHeight = minimum + 'px';
+        if (!manuallyResized) control.style.height = minimum + 'px';
+        else if (control.getBoundingClientRect().height < minimum) control.style.height = minimum + 'px';
+      };
+      measure();
+      window.addEventListener('resize', measure);
       let startY = 0, startHeight = 0;
       grip.addEventListener('pointerdown', event => {
         if (event.button !== 0) return;
@@ -78,12 +102,10 @@
       });
       grip.addEventListener('pointermove', event => {
         if (!grip.hasPointerCapture(event.pointerId)) return;
-        control.style.height = Math.max(48, startHeight + event.clientY - startY) + 'px';
+        manuallyResized = true;
+        control.style.height = Math.max(minimum, startHeight + event.clientY - startY) + 'px';
       });
-      grip.addEventListener('pointerup', event => {
-        if (grip.hasPointerCapture(event.pointerId)) grip.releasePointerCapture(event.pointerId);
-      });
-      grip.addEventListener('pointercancel', event => {
+      for (const name of ['pointerup', 'pointercancel']) grip.addEventListener(name, event => {
         if (grip.hasPointerCapture(event.pointerId)) grip.releasePointerCapture(event.pointerId);
       });
     }
