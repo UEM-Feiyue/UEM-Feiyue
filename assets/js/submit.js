@@ -54,6 +54,50 @@
         control.setAttribute('aria-describedby', hint.id);
         wrapper.append(hint);
       }
+      if (field.name === 'body') {
+        const toolbar = make('div');
+        toolbar.className = 'markdown-toolbar';
+        toolbar.setAttribute('role', 'toolbar');
+        toolbar.setAttribute('aria-label', '正文排版快捷操作');
+        const actions = [
+          ['二级标题', 'h2'], ['三级标题', 'h3'], ['加粗', 'bold'],
+          ['无序列表', 'ul'], ['有序列表', 'ol'], ['引用', 'quote'], ['链接', 'link']
+        ];
+        const apply = kind => {
+          const start = control.selectionStart;
+          const end = control.selectionEnd;
+          const selected = control.value.slice(start, end);
+          const lineStart = control.value.lastIndexOf('\n', start - 1) + 1;
+          let from = start, to = end, replacement = '', selectStart = 0, selectEnd = 0;
+          if (kind === 'bold' || kind === 'link') {
+            const sample = selected || (kind === 'bold' ? '加粗文字' : '链接文字');
+            replacement = kind === 'bold' ? '**' + sample + '**' : '[' + sample + '](https://)';
+            selectStart = kind === 'bold' ? 2 : 1;
+            selectEnd = selectStart + sample.length;
+          } else {
+            from = lineStart;
+            const prefix = { h2: '## ', h3: '### ', ul: '- ', ol: '1. ', quote: '> ' }[kind];
+            const before = control.value.slice(from, start);
+            const lineText = before + (selected || '在这里输入内容');
+            replacement = prefix + lineText;
+            selectStart = prefix.length + before.length;
+            selectEnd = selectStart + (selected || '在这里输入内容').length;
+          }
+          control.setRangeText(replacement, from, to, 'end');
+          control.focus();
+          control.setSelectionRange(from + selectStart, from + selectEnd);
+          control.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        for (const [label, kind] of actions) {
+          const action = make('button', label);
+          action.type = 'button';
+          action.className = 'markdown-action';
+          action.setAttribute('aria-label', label);
+          action.addEventListener('click', () => apply(kind));
+          toolbar.append(action);
+        }
+        wrapper.insertBefore(toolbar, control);
+      }
       fields.append(wrapper);
       controls.set(field.name, control);
     }
