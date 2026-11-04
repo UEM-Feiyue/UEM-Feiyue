@@ -55,8 +55,12 @@ a:is(:hover,:focus-visible) .link-arrow{transform:translateX(3px) rotate(45deg)}
 
 /* Shared brand artwork and photographic page atmosphere. */
 .brand{margin-bottom:48px;min-height:52px}.brand-logo{display:block;width:100%;height:auto;max-width:215px;object-fit:contain}.mobile-brand-logo{display:block;width:150px;max-width:100%;height:auto;object-fit:contain}.mobile-brand{min-width:0;max-width:calc(100% - 64px)}
-.page{position:relative;isolation:isolate;background:transparent}
-.page::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(rgba(247,249,252,.16),rgba(247,249,252,.16)),url("../images/anguo-garden.jpg") center center / cover no-repeat}
-[data-theme=dark] .page::before{background:linear-gradient(rgba(11,20,36,.32),rgba(11,20,36,.32)),url("../images/anguo-garden.jpg") center center / cover no-repeat}
+/* Keep the photo on the page itself, never on a negative-z-index overlay. */
+.page{background:linear-gradient(rgba(247,249,252,.12),rgba(247,249,252,.12)),url("../images/anguo-garden.jpg") center center / cover fixed}
+[data-theme=dark] .page{background:linear-gradient(rgba(11,20,36,.24),rgba(11,20,36,.24)),url("../images/anguo-garden.jpg") center center / cover fixed}
+/* Readable content panel; translucent, not blurred. The sidebar remains fully opaque. */
+.content{background:rgba(247,249,252,.87)}
+[data-theme=dark] .content{background:rgba(11,20,36,.87)}
+@media(max-width:900px){.page{background-attachment:scroll}.content{background:rgba(247,249,252,.90)}[data-theme=dark] .content{background:rgba(11,20,36,.90)}}
 @media(max-width:900px){.brand-logo{max-width:100%}.mobile-brand-logo{width:142px}}
 @media(max-width:580px){.mobile-brand-logo{width:128px}}
