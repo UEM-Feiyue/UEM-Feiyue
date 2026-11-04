@@ -46,6 +46,43 @@
     if (!response.ok) throw new Error('Could not load ' + path);
     return response.json();
   };
+  // One footer implementation for home, archives, submission and generated articles.
+  const footer = document.querySelector('[data-site-footer]');
+  const footerLinks = footer && el('nav', 'footer-links');
+  if (footer) {
+    const inner = el('div', 'footer-inner');
+    const grid = el('div', 'footer-grid');
+    const identity = el('div', 'footer-brand');
+    const brand = el('a', 'footer-brand-link');
+    brand.href = base;
+    const logo = el('img', 'footer-logo');
+    logo.src = base + 'assets/images/favicon-横版.png';
+    logo.alt = '应急管理大学飞跃手册';
+    logo.width = 1226;
+    logo.height = 285;
+    brand.append(logo);
+    identity.append(brand, el('p', '', '记录升学与职业路上的真实经历，让经验被看见，让后来者少走弯路。'));
+    const linksSection = el('div');
+    linksSection.append(el('h2', 'footer-title', '探索'));
+    footerLinks.setAttribute('aria-label', '页脚导航');
+    const addFooterLink = (label, href) => {
+      const link = el('a', '', label);
+      link.href = base + href;
+      footerLinks.append(link);
+    };
+    addFooterLink('全部经历', '?view=all');
+    linksSection.append(footerLinks);
+    const bottom = el('div', 'footer-bottom');
+    bottom.append(el('span', '', 'UEM Feiyue · 由同学共同维护'));
+    const github = el('a', '', 'GitHub · 项目仓库');
+    github.href = 'https://github.com/UEM-Feiyue/UEM-Feiyue.github.io';
+    github.target = '_blank';
+    github.rel = 'noopener noreferrer';
+    bottom.append(github);
+    grid.append(identity, linksSection);
+    inner.append(grid, bottom);
+    footer.append(inner);
+  }
   const nav = document.querySelector('#category-nav');
   const params = new URLSearchParams(location.search);
   const selected = params.get('category');
@@ -67,6 +104,16 @@
     const intro = document.querySelector('#category-intro');
     if (heading) heading.textContent = current ? current.label + '经历' : '全部经历';
     if (intro) intro.textContent = current ? current.description + '，阅读同学的经验分享。' : '按方向浏览同学分享的升学与职业经验。';
+    if (footerLinks) {
+      for (const item of schema.categories) {
+        const link = el('a', '', item.label);
+        link.href = base + '?category=' + encodeURIComponent(item.id);
+        footerLinks.append(link);
+      }
+      const contribute = el('a', '', '投稿分享');
+      contribute.href = base + 'submit.html';
+      footerLinks.append(contribute);
+    }
     for (const item of schema.categories) {
       const link = el('a', '', item.label);
       link.href = base + '?category=' + encodeURIComponent(item.id);

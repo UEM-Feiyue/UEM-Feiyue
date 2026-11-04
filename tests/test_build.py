@@ -19,7 +19,10 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertIn("--reading-bg", stylesheet)
         self.assertNotIn("hero-visual", homepage)
         self.assertNotIn("hero-paths", homepage)
-        self.assertIn('class="hero-corner"', homepage)
+        self.assertIn('data-site-footer', homepage)
+        self.assertIn('class="site-footer"', homepage)
+        self.assertNotIn('class="hero-corner"', homepage)
+        self.assertIn('background:transparent;min-height', stylesheet)
 
     def test_published_article_brand_assets(self):
         meta = {"category": "career", "author": "同学", "year": "2026", "destination": "企业"}
