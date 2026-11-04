@@ -39,7 +39,7 @@
       }
       previewText.textContent = lines.join('\n');
       preview.hidden = false;
-      preview.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+      preview.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     });
     form.addEventListener('reset', () => { preview.hidden = true; });
   }).catch(() => { fields.textContent = '表单加载失败，请刷新重试。'; });
