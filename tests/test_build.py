@@ -25,7 +25,7 @@ class SubmissionBuildTests(unittest.TestCase):
 
     def test_render_heading_table_and_sanitize(self):
         meta = {"category": "overseas", "author": "张同学", "year": "2026", "destination": "香港中文大学"}
-        body = "# 一级标题\\n\\n| 项目 | 说明 |\\n| --- | --- |\\n| A | B |\\n\\n~~删除文字~~\\n\\n- [x] 已完成\\n\\n<script>alert(1)</script>"
+        body = "# 一级标题\\n\\n| 项目 | 说明 |\\n| --- | --- |\\n| A | B |\\n\\n~~删除文字~~\\n\\n- [x] 已完成\\n\\n<script>alert(1)</script>".replace("\\n", "\n")
         page = build.render(meta, body, "articles/sample.html")
         self.assertIn("<h1", page)
         self.assertIn("<table>", page)
