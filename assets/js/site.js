@@ -27,8 +27,9 @@
     if (content != null) node.textContent = content;
     return node;
   };
+  const base = new URL('../..', document.currentScript.src).href.replace(/\/$/, '') + '/';
   const load = async path => {
-    const response = await fetch(path);
+    const response = await fetch(base + path);
     if (!response.ok) throw new Error('Could not load ' + path);
     return response.json();
   };
@@ -67,7 +68,7 @@
       const query = search.value.trim().toLocaleLowerCase();
       const visible = articles.filter(item => (select.value === 'all' || item.category === select.value) && (year.value === 'all' || String(item.year) === year.value) && [item.title, item.author, item.major, item.destination, item.excerpt, ...(item.tags || [])].join(' ').toLocaleLowerCase().includes(query));
       results.replaceChildren();
-      count.textContent = visible.length + ' 篇经历';
+      count.textContent = visible.length + ' 篇经历' + (visible.some(item => item.demo) ? ' · 含演示内容' : '');
       if (!visible.length) {
         const empty = el('div', 'empty-state');
         empty.append(el('h3', '', articles.length ? '暂时没有匹配的经历' : '故事即将从这里开始'), el('p', '', articles.length ? '试试其他关键词或筛选条件。' : '第一篇真实分享，期待由你写下。'));
@@ -78,9 +79,10 @@
       } else for (const item of visible) {
         const article = el('article', 'article-item');
         const link = el('a', '', item.title);
-        link.href = item.url;
+        link.href = base + item.url;
         const heading = el('h3');
         heading.append(link);
+        if (item.demo) article.append(el('span', 'demo-badge', '演示'));
         article.append(el('p', 'article-meta', [schema.categories.find(c => c.id === item.category)?.label, item.year && item.year + ' 届', item.major].filter(Boolean).join(' · ')), heading, el('p', 'article-excerpt', item.excerpt || ''));
         results.append(article);
       }

@@ -16,7 +16,7 @@ OUTPUT = ROOT / "articles"
 INDEX = ROOT / "data" / "articles.json"
 CATEGORIES = {item["id"]: item["label"] for item in json.loads((ROOT / "data" / "schema.json").read_text(encoding="utf-8"))["categories"]}
 ALLOWED_TAGS = set(bleach.sanitizer.ALLOWED_TAGS) | {"p", "h2", "h3", "h4", "pre", "code", "blockquote", "hr", "br", "img", "table", "thead", "tbody", "tr", "th", "td"}
-ALLOWED_ATTRS = {"a": ["href", "title"], "img": ["src", "alt", "title"], "th": ["align"], "td": ["align"]}
+ALLOWED_ATTRS = {"a": ["href", "title"], "img": ["src", "alt", "title"], "th": ["align"], "td": ["align"], "h2": ["id"], "h3": ["id"]}
 
 
 def parse(path):
@@ -46,13 +46,16 @@ def render(meta, body, url):
     clean = bleach.clean(rendered, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRS, protocols=["http", "https", "mailto"], strip=True)
     title = html.escape(str(meta["title"]))
     byline = " · ".join(html.escape(str(meta[k])) for k in ("author", "year", "major") if meta.get(k))
+    headings = re.findall(r'<h([23]) id="([^"]+)">(.+?)</h[23]>', clean)
+    toc = '<nav class="article-toc" aria-label="文章目录"><strong>本页目录</strong><ul>' + ''.join(f'<li><a href="#{html.escape(anchor, quote=True)}">{text}</a></li>' for level, anchor, text in headings) + '</ul></nav>' if len(headings) >= 2 else ''
+    demo = '<span class="demo-badge">演示内容 · 非真实投稿</span>' if meta.get('demo') is True else ''
     contact = f'<aside class="article-contact"><strong>联系作者</strong><p>{html.escape(str(meta["contact"]))}</p></aside>' if meta.get("contact") else ""
     return f"""<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="{html.escape(str(meta.get('excerpt') or meta['title']), quote=True)}"><title>{title} · UEM Feiyue</title><link rel="stylesheet" href="../assets/css/site.css"><script defer src="../assets/js/site.js"></script></head>
 <body><a class="skip-link" href="#main">跳转到正文</a><div class="shell">
 <aside class="sidebar" id="sidebar" aria-label="主导航"><a class="brand" href="../"><span class="brand-mark" aria-hidden="true">跃</span><span><strong>UEM Feiyue</strong><small>应急管理大学飞跃手册</small></span></a><nav class="nav" id="category-nav"><a href="../">全部经历</a></nav><div class="sidebar-bottom"><p>把走过的路，留给后来的人。</p><a class="nav-submit" href="../submit.html">分享我的经历 ↗</a></div></aside>
 <div class="page"><header class="topbar"><button class="icon-button menu-button" id="menu-toggle" type="button" aria-label="打开导航" aria-controls="sidebar" aria-expanded="false">☰</button><a class="mobile-brand" href="../">UEM Feiyue</a><div class="top-actions"><button class="icon-button" id="theme-toggle" type="button" aria-label="切换明暗主题">◐</button><a class="top-submit" href="../submit.html">投稿 ↗</a></div></header>
-<main id="main" class="content"><article class="article-page"><a class="article-back" href="../?category={quote(str(meta['category']))}">← {html.escape(CATEGORIES[meta['category']])}</a><p class="eyebrow">UEM FEIYUE · {html.escape(CATEGORIES[meta['category']])}</p><h1>{title}</h1><p class="article-byline">{byline}</p><div class="article-body">{clean}</div>{contact}</article><footer class="footer"><span>UEM Feiyue · 由同学共同维护</span><a href="https://github.com/UEM-Feiyue/UEM-Feiyue.github.io">GitHub ↗</a></footer></main></div></div><button class="scrim" id="scrim" type="button" aria-label="关闭导航" hidden></button></body></html>"""
+<main id="main" class="content"><article class="article-page"><a class="article-back" href="../?category={quote(str(meta['category']))}">← {html.escape(CATEGORIES[meta['category']])}</a><p class="eyebrow">UEM FEIYUE · {html.escape(CATEGORIES[meta['category']])}</p><h1>{title}</h1>{demo}<p class="article-byline">{byline}</p>{toc}<div class="article-body">{clean}</div>{contact}</article><footer class="footer"><span>UEM Feiyue · 由同学共同维护</span><a href="https://github.com/UEM-Feiyue/UEM-Feiyue.github.io">GitHub ↗</a></footer></main></div></div><button class="scrim" id="scrim" type="button" aria-label="关闭导航" hidden></button></body></html>"""
 
 
 def main():
@@ -72,6 +75,7 @@ def main():
         url = "articles/" + filename
         pages[filename] = render(meta, body, url)
         entries.append({
+            "demo": meta.get("demo") is True,
             "title": str(meta["title"]),
             "category": meta["category"],
             "author": str(meta["author"]),
