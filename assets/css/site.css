@@ -46,3 +46,12 @@ a:is(:hover,:focus-visible) .link-arrow{transform:translateX(3px) rotate(45deg)}
 .textarea-holder{position:relative}.textarea-holder textarea{display:block;width:100%;resize:vertical}.textarea-grip{position:absolute;right:4px;bottom:4px;width:32px;height:32px;display:grid;place-items:center;border:0;background:transparent;color:var(--muted);font-size:20px;touch-action:none;cursor:ns-resize;user-select:none;border-radius:5px}.textarea-grip:focus-visible{outline:2px solid var(--accent)}@media(pointer:fine){.textarea-grip{display:none}}
 
 .markdown-toolbar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 4px}.markdown-action{border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--text);font-size:13px;line-height:1.4;padding:7px 10px;white-space:nowrap}.markdown-action:hover,.markdown-action:focus-visible{border-color:var(--accent);color:var(--accent)}
+
+/* Submission-only WYSIWYG editor. */
+.rich-editor{border:1px solid var(--line);background:var(--surface);border-radius:9px;overflow:hidden}
+.rich-editor:focus-within{border-color:var(--accent)}
+.rich-editor-toolbar{display:flex;flex-wrap:wrap;gap:4px;padding:8px;border-bottom:1px solid var(--line)}
+.rich-editor-toolbar button{border:0;border-radius:6px;background:transparent;color:var(--text);padding:5px 9px;font-size:13px}
+.rich-editor-toolbar button:hover,.rich-editor-toolbar button:focus-visible{background:var(--soft);color:var(--accent)}
+.rich-editor .tiptap{padding:14px;min-height:220px;outline:none}
+.rich-editor .tiptap>*:first-child{margin-top:0}

@@ -1,0 +1,35 @@
+name: Validate submission editor
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build:editor
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - run: python scripts/build.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: submission-editor-results
+          path: |
+            assets/js/editor/editor.js
+            package-lock.json
+            playwright-report
+            test-results

@@ -54,50 +54,6 @@
         control.setAttribute('aria-describedby', hint.id);
         wrapper.append(hint);
       }
-      if (field.name === 'body') {
-        const toolbar = make('div');
-        toolbar.className = 'markdown-toolbar';
-        toolbar.setAttribute('role', 'toolbar');
-        toolbar.setAttribute('aria-label', '正文排版快捷操作');
-        const actions = [
-          ['二级标题', 'h2'], ['三级标题', 'h3'], ['加粗', 'bold'],
-          ['无序列表', 'ul'], ['有序列表', 'ol'], ['引用', 'quote'], ['链接', 'link']
-        ];
-        const apply = kind => {
-          const start = control.selectionStart;
-          const end = control.selectionEnd;
-          const selected = control.value.slice(start, end);
-          const lineStart = control.value.lastIndexOf('\n', start - 1) + 1;
-          let from = start, to = end, replacement = '', selectStart = 0, selectEnd = 0;
-          if (kind === 'bold' || kind === 'link') {
-            const sample = selected || (kind === 'bold' ? '加粗文字' : '链接文字');
-            replacement = kind === 'bold' ? '**' + sample + '**' : '[' + sample + '](https://)';
-            selectStart = kind === 'bold' ? 2 : 1;
-            selectEnd = selectStart + sample.length;
-          } else {
-            from = lineStart;
-            const prefix = { h2: '## ', h3: '### ', ul: '- ', ol: '1. ', quote: '> ' }[kind];
-            const before = control.value.slice(from, start);
-            const lineText = before + (selected || '在这里输入内容');
-            replacement = prefix + lineText;
-            selectStart = prefix.length + before.length;
-            selectEnd = selectStart + (selected || '在这里输入内容').length;
-          }
-          control.setRangeText(replacement, from, to, 'end');
-          control.focus();
-          control.setSelectionRange(from + selectStart, from + selectEnd);
-          control.dispatchEvent(new Event('input', { bubbles: true }));
-        };
-        for (const [label, kind] of actions) {
-          const action = make('button', label);
-          action.type = 'button';
-          action.className = 'markdown-action';
-          action.setAttribute('aria-label', label);
-          action.addEventListener('click', () => apply(kind));
-          toolbar.append(action);
-        }
-        wrapper.insertBefore(toolbar, control);
-      }
       fields.append(wrapper);
       controls.set(field.name, control);
     }
@@ -105,7 +61,7 @@
     // Size each field to its wrapped placeholder, leaving room for the drag handle.
     // Never allow the handle to cover the placeholder when dragged upward.
     for (const control of controls.values()) {
-      if (control.tagName !== 'TEXTAREA') continue;
+      if (control.tagName !== 'TEXTAREA' || control.name === 'body') continue;
       const grip = make('button', '↘');
       grip.type = 'button';
       grip.className = 'textarea-grip';
@@ -178,6 +134,30 @@
       }
     } catch {}
     updateCategory();
+    const bodyControl = controls.get('body');
+    const editorHost = make('div');
+    editorHost.id = 'rich-editor';
+    editorHost.className = 'rich-editor article-body';
+    editorHost.hidden = true;
+    bodyControl.after(editorHost);
+    let richEditor = null;
+    const editorStatus = make('small', '正在加载可视化编辑器…');
+    editorStatus.className = 'field-hint';
+    editorHost.after(editorStatus);
+    import('./editor/editor.js').then(({ mountEditor }) => {
+      richEditor = mountEditor(editorHost, bodyControl.value, markdown => {
+        bodyControl.value = markdown;
+        bodyControl.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      editorHost.hidden = false;
+      bodyControl.hidden = true;
+      bodyControl.required = false;
+      editorStatus.textContent = '正文直接显示排版效果；内容保存为 Markdown 草稿。';
+    }).catch(error => {
+      console.error('Rich editor failed to initialize:', error?.stack || String(error));
+      editorHost.remove();
+      editorStatus.textContent = '可视化编辑器加载失败，请使用 Markdown 文本框。';
+    });
     const save = () => {
       hidePreview();
       try {
@@ -194,7 +174,10 @@
       draftStatus.textContent = '草稿已清空，尚未提交。';
       requestAnimationFrame(() => {
         updateCategory();
-          });
+        if (richEditor) richEditor.commands.clearContent(false);
+        // Reset must not recreate a stale draft through the editor update callback.
+        try { sessionStorage.removeItem(draftKey); } catch {}
+      });
     });
     const addInline = (parent, source) => {
       const parts = source.split(/(\*\*[^*]+\*\*|\[[^\]]+\]\(https?:\/\/[^ )]+\))/g);
@@ -233,7 +216,13 @@
     button.addEventListener('click', () => {
       for (const field of schema.fields) {
         const control = controls.get(field.name);
+        if (field.name === 'body' && richEditor) continue;
         control.setCustomValidity(field.required && !control.value.trim() ? '请填写' + field.label : '');
+      }
+      if (richEditor && !bodyControl.value.trim()) {
+        editorStatus.textContent = '请先填写经历正文。';
+        richEditor.commands.focus();
+        return;
       }
       if (!form.reportValidity()) return;
       const data = new FormData(form);
@@ -251,7 +240,8 @@
       previewText.append(metadata, make('h3', '经历正文'));
       const body = make('div');
       body.className = 'article-body';
-      renderMarkdown(String(data.get('body') || ''), body);
+      if (richEditor) body.innerHTML = richEditor.getHTML();
+      else renderMarkdown(String(data.get('body') || ''), body);
       previewText.append(body);
       preview.hidden = false;
       preview.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });

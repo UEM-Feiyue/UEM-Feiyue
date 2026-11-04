@@ -98,7 +98,7 @@
       "type": "textarea",
       "required": true,
       "placeholder": "从背景、准备过程、关键节点、经验教训到给学弟学妹的建议，自由书写",
-      "hint": "支持 Markdown 标题、列表、加粗、引用和链接，可预览排版。"
+      "hint": "可视化编辑，支持标题、列表、加粗、引用和链接；内容保存为 Markdown 草稿。"
     }
   ]
 }
