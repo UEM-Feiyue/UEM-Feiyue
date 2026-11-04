@@ -1,0 +1,85 @@
+{
+  "categories": [
+    {
+      "id": "kaoyan",
+      "label": "考研",
+      "description": "备考、复试与录取经历"
+    },
+    {
+      "id": "overseas",
+      "label": "留学",
+      "description": "选校、申请与海外求学"
+    },
+    {
+      "id": "career",
+      "label": "就业",
+      "description": "实习、校招与职场起步"
+    },
+    {
+      "id": "public",
+      "label": "考公考编",
+      "description": "备考、招录与面试经验"
+    }
+  ],
+  "fields": [
+    {
+      "name": "title",
+      "label": "文章标题",
+      "type": "text",
+      "required": true,
+      "maxLength": 120
+    },
+    {
+      "name": "author",
+      "label": "署名 / 昵称",
+      "type": "text",
+      "required": true,
+      "maxLength": 60
+    },
+    {
+      "name": "year",
+      "label": "毕业届次",
+      "type": "text",
+      "required": true,
+      "maxLength": 20,
+      "placeholder": "例如 2026 届"
+    },
+    {
+      "name": "school",
+      "label": "学院",
+      "type": "text",
+      "maxLength": 80
+    },
+    {
+      "name": "major",
+      "label": "本科专业",
+      "type": "text",
+      "maxLength": 80
+    },
+    {
+      "name": "destination",
+      "label": "最终去向 / 目标",
+      "type": "text",
+      "maxLength": 160
+    },
+    {
+      "name": "background",
+      "label": "个人背景（选填）",
+      "type": "textarea",
+      "placeholder": "成绩、语言、科研、竞赛、实习等与经历相关的信息"
+    },
+    {
+      "name": "contact",
+      "label": "联系方式（选填）",
+      "type": "textarea",
+      "placeholder": "邮箱、微信、QQ、GitHub、个人主页等"
+    },
+    {
+      "name": "body",
+      "label": "经历正文",
+      "type": "textarea",
+      "required": true,
+      "placeholder": "从背景、准备过程、关键节点、经验教训到给学弟学妹的建议，自由书写"
+    }
+  ]
+}
