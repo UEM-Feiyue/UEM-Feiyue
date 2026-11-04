@@ -11,4 +11,13 @@
 9. Browser previews and published pages must use consistent Markdown structures and the shared `.article-body` CSS; any parser differences must be documented rather than hidden. Changes should solve root causes, not accumulate patches. Commit coherent milestones directly to main during the initial build phase; PRs are not required.
 10. The emergency-blue palette is a custom interpretation until official UEM visual identity color values are verified.
 
-11. Use `assets/icons/favicon.svg` for all browser favicons, `assets/images/favicon-横版.png` for shared header branding, and `assets/images/anguo-garden.jpg` as a shared site background on all pages with distinct light/dark readability surfaces; paint the campus photo once on body; restore saved theme before stylesheet rendering with theme-init.js; share HAI-inspired footer navigation via site.js with a static fallback; retain transparent content and no decorative hero widgets. Keep image references consistent on root and generated article pages.
+11. Use `assets/icons/favicon.svg` for all browser favicons, `assets/images/favicon-横版.png` for shared header branding, and `assets/images/anguo-garden.jpg` as a shared site background on all pages with distinct light/dark readability surfaces; paint the campus photo once on body; restore saved theme before stylesheet rendering with theme-init.js; generate HAI-inspired footer navigation from the homepage and schema; retain transparent content and no decorative hero widgets. Keep image references consistent on root and generated article pages.
+
+
+## Project structure and development
+
+- Root `index.html` and `submit.html` are directly editable UI sources. Keep `assets/`, `content/`, `data/`, `scripts/` and `tests/` organized by their actual project responsibilities. Add a Worker only when a real submission backend is needed.
+- `preview.py` provides local preview and verified artifact replacement; `scripts/site_build.py` runs this project's content pipeline in isolation. Publish `_site/` only. Shared page chrome is drawn from the homepage during generation; do not add a separate framework merely to make this repository resemble another site.
+- Schema owns required fields, limits and patterns. Keep the explicit preview-only submission state until a real backend is implemented and verified.
+- Run `python -m unittest discover -s tests -t . -p 'test_*.py'`, `python preview.py --build-only` and `python tests/browser_smoke.py` for structural/UI changes. Each repository can evolve independently after this quality alignment.
+- Treat cross-project alignment as a quality baseline, not a fixed repository template. Prefer familiar, purpose-driven organization; reuse proven logic only when it suits this project. Each site may evolve its UI, dependencies and structure independently.

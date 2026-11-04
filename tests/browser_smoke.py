@@ -1,0 +1,142 @@
+"""Exercise the complete UEM artifact, including its Pages project subpath."""
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+import json
+from pathlib import Path
+from threading import Thread
+from playwright.sync_api import sync_playwright
+
+ROOT = Path(__file__).resolve().parents[1]
+PREFIX = "/UEM-Feiyue.github.io"
+
+
+class Handler(SimpleHTTPRequestHandler):
+    def translate_path(self, path):
+        if path.startswith(PREFIX + "/"):
+            path = path[len(PREFIX):]
+        return super().translate_path(path)
+
+    def log_request(self, *args):
+        pass
+
+
+def main():
+    server = ThreadingHTTPServer(("127.0.0.1", 0), partial(Handler, directory=str(ROOT / "_site")))
+    worker = Thread(target=server.serve_forever, daemon=True)
+    worker.start()
+    base = f"http://127.0.0.1:{server.server_port}"
+    articles = json.loads((ROOT / "_site/data/articles.json").read_text(encoding="utf-8"))
+    output = ROOT / "output/playwright"
+    output.mkdir(parents=True, exist_ok=True)
+    try:
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch()
+            for width in (320, 390, 900, 901, 1440):
+                for theme in ("light", "dark"):
+                    context = browser.new_context(viewport={"width": width, "height": 900}, reduced_motion="reduce")
+                    context.add_init_script(f"localStorage.setItem('uem-theme', '{theme}')")
+                    page = context.new_page()
+                    errors = []
+                    page.on("pageerror", lambda error: errors.append(str(error)))
+                    page.goto(base + PREFIX + "/", wait_until="networkidle")
+                    assert page.locator("h1:visible").count() == 1
+                    assert page.locator("#category-nav [data-category]").count() == 5
+                    assert page.locator(".site-footer").count() == 1
+                    if width <= 900:
+                        assert page.locator("#sidebar").evaluate("el => el.inert")
+                        page.locator("#menu-toggle").click()
+                        assert page.locator("#menu-toggle").get_attribute("aria-expanded") == "true"
+                        assert not page.locator("#sidebar").evaluate("el => el.inert")
+                        page.keyboard.press("Escape")
+                        assert page.locator("#menu-toggle").get_attribute("aria-expanded") == "false"
+                        assert page.locator("#menu-toggle").evaluate("el => el === document.activeElement")
+                        page.keyboard.press("Tab")
+                        assert not page.locator("#sidebar").evaluate("el => el.contains(document.activeElement)")
+                    else:
+                        assert not page.locator("#sidebar").evaluate("el => el.inert")
+                    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 2")
+                    if width in (390, 1440) and theme == "light":
+                        page.screenshot(path=str(output / f"home-{width}.png"), full_page=True)
+                    page.evaluate("window.__sameDocument = true")
+                    page.locator('#home-intro a').filter(has_text='浏览').first.click()
+                    assert page.evaluate("window.__sameDocument")
+                    assert "view=all" in page.url
+                    assert page.locator(".article-item:visible").count() == len(articles)
+                    page.locator("#search").fill("no-matching-story-987654321")
+                    assert page.locator(".empty-state").is_visible()
+                    page.locator("#search").fill(articles[0]["author"])
+                    assert page.locator(".article-item:visible").count() > 0
+                    page.locator(".article-item:visible h3 a").first.click()
+                    page.wait_for_selector(".article-body")
+                    assert page.locator(".demo-badge").is_visible()
+                    assert page.locator(".article-toc").count() <= 1
+                    assert page.locator("#category-nav [aria-current='page']").count() == 1
+                    assert page.locator(".site-footer").count() == 1
+                    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 2")
+                    page.go_back(wait_until="networkidle")
+                    assert page.locator("#search").is_visible()
+                    assert page.locator("#search").input_value() == articles[0]["author"]
+                    page.goto(base + PREFIX + "/submit.html", wait_until="networkidle")
+                    page.wait_for_selector("#body")
+                    page.locator("#author").fill("Browser test")
+                    page.locator("#year").fill("abcd")
+                    assert not page.locator("#year").evaluate("el => el.checkValidity()")
+                    page.locator("#year").fill("2026")
+                    page.locator("#destination").fill("Example institution")
+                    page.locator("#body").fill("## Heading\n\n**Test body**\n\n<script>window.__unsafe = true</script>")
+                    page.locator("#contact").fill("do-not-save@example.invalid")
+                    page.locator("#preview-button").click()
+                    assert page.locator("#preview").is_visible()
+                    assert page.locator("#preview .article-body strong").inner_text() == "Test body"
+                    assert not page.evaluate("Boolean(window.__unsafe)")
+                    assert "尚未连接 GitHub Issue" in page.locator(".notice").inner_text()
+                    page.reload(wait_until="networkidle")
+                    page.wait_for_selector("#body")
+                    assert page.locator("#author").input_value() == "Browser test"
+                    assert page.locator("#contact").input_value() == ""
+                    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 2")
+                    assert errors == [], errors
+                    context.close()
+                    print(f"UEM browser passed: {width}px, {theme}")
+            context = browser.new_context(reduced_motion="no-preference")
+            page = context.new_page()
+            errors = []
+            page.on("pageerror", lambda error: errors.append(str(error)))
+            page.goto(base + "/?view=all", wait_until="networkidle")
+            page.evaluate("window.__sameDocument = true")
+            page.locator('#category-nav [data-category="career"]').click()
+            page.wait_for_function("location.search === '?category=career' && !document.querySelector('#archive-section').hidden")
+            assert page.evaluate("window.__sameDocument")
+            page.locator('#search').fill('no-matching-story-987654321')
+            page.locator('#category-nav [data-category="all"]').click()
+            page.wait_for_function("location.search === '?view=all' && document.querySelector('#search').value === ''")
+            page.go_back()
+            assert page.locator('#search').input_value() == 'no-matching-story-987654321'
+            assert page.locator('#empty-state').is_visible()
+            page.go_forward()
+            assert page.locator('#search').input_value() == ''
+            page.locator(".article-item:visible h3 a").first.click()
+            page.wait_for_load_state("networkidle")
+            page.locator(".article-back").click()
+            page.wait_for_load_state("networkidle")
+            assert errors == [], errors
+            context.close()
+            context = browser.new_context(java_script_enabled=False)
+            page = context.new_page()
+            for route in ("/", "/" + articles[0]["url"]):
+                page.goto(base + PREFIX + route)
+                assert page.locator(".footer-links a").count() == 6
+                assert page.locator("#category-nav [data-category]").count() == 5
+                assert page.locator("h1").count() >= 1
+                if route == "/":
+                    assert page.locator(".article-item:visible").count() == len(articles)
+            context.close()
+            browser.close()
+    finally:
+        server.shutdown()
+        worker.join()
+        server.server_close()
+
+
+if __name__ == "__main__":
+    main()

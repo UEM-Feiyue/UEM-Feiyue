@@ -1,10 +1,12 @@
 """Build invariants for structured submissions and safe Markdown output."""
 import importlib.util
 import json
+import tempfile
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
 spec = importlib.util.spec_from_file_location("uem_build", ROOT / "scripts" / "build.py")
 build = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(build)
@@ -56,6 +58,36 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertIn("<del>", page)
         self.assertIn('type="checkbox"', page)
         self.assertNotIn("<script>alert(1)</script>", page)
+
+    def test_schema_required_fields_and_limits_are_enforced_before_publication(self):
+        meta = {"category": "career", "author": "Test author", "year": "2026", "destination": "Example"}
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "test.md"
+            for field in build.SCHEMA["fields"]:
+                if field.get("required"):
+                    values = dict(meta)
+                    body = "Article body"
+                    if field["name"] == "body":
+                        body = ""
+                    else:
+                        values.pop(field["name"], None)
+                    source.write_text("---\n" + build.yaml.safe_dump(values) + "---\n" + body, encoding="utf-8")
+                    with self.subTest(field=field["name"]), self.assertRaises(ValueError):
+                        build.parse(source)
+                if field.get("maxLength"):
+                    values = dict(meta, **{field["name"]: "x" * (field["maxLength"] + 1)})
+                    source.write_text("---\n" + build.yaml.safe_dump(values) + "---\nBody", encoding="utf-8")
+                    with self.subTest(limit=field["name"]), self.assertRaises(ValueError):
+                        build.parse(source)
+
+    def test_schema_category_and_year_patterns_reject_invalid_content(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "test.md"
+            for category, year in (("unknown", "2026"), ("career", "abcd"), ("career", True)):
+                values = {"category": category, "year": year, "author": "Test", "destination": "Example"}
+                source.write_text("---\n" + build.yaml.safe_dump(values) + "---\nBody", encoding="utf-8")
+                with self.subTest(category=category, year=year), self.assertRaises(ValueError):
+                    build.parse(source)
 
     def test_demo_is_not_represented_as_real_story(self):
         sample = (ROOT / "data/demo-submission.md").read_text(encoding="utf-8")
