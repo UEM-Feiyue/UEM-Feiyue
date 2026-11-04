@@ -99,11 +99,11 @@
       requestAnimationFrame(updateCategory);
     });
     const addInline = (parent, source) => {
-      const parts = source.split(/(\\*\\*[^*]+\\*\\*|\\[[^\\]]+\\]\\(https?:\\/\\/[^ )]+\\))/g);
+      const parts = source.split(/(\*\*[^*]+\*\*|\[[^\]]+\]\(https?:\/\/[^ )]+\))/g);
       for (const part of parts) {
         if (part.startsWith('**') && part.endsWith('**')) parent.append(make('strong', part.slice(2, -2)));
-        else if (/^\\[[^\\]]+\\]\\(https?:\\/\\/[^ )]+\\)$/.test(part)) {
-          const match = /^\\[([^\\]]+)\\]\\((https?:\\/\\/[^ )]+)\\)$/.exec(part);
+        else if (/^\[[^\]]+\]\(https?:\/\/[^ )]+\)$/.test(part)) {
+          const match = /^\[([^\]]+)\]\((https?:\/\/[^ )]+)\)$/.exec(part);
           const link = make('a', match[1]);
           link.href = match[2]; link.rel = 'noopener noreferrer'; link.target = '_blank';
           parent.append(link);
@@ -113,11 +113,11 @@
     const renderMarkdown = (source, target) => {
       target.replaceChildren();
       let list = null;
-      for (const line of source.split(/\\r?\\n/)) {
+      for (const line of source.split(/\r?\n/)) {
         const text = line.trim();
         if (!text) { list = null; continue; }
-        const heading = /^(#{2,3})\\s+(.+)$/.exec(text);
-        const item = /^([-*]|[0-9]+\\.)\\s+(.+)$/.exec(text);
+        const heading = /^(#{2,3})\s+(.+)$/.exec(text);
+        const item = /^([-*]|[0-9]+\.)\s+(.+)$/.exec(text);
         let node;
         if (heading) { list = null; node = make('h' + heading[1].length); addInline(node, heading[2]); target.append(node); }
         else if (item) {
