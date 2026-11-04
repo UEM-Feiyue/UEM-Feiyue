@@ -4,12 +4,11 @@
 
 ```yaml
 ---
-title: 我的经历标题
 category: kaoyan
 author: 昵称
 year: "2026"
-major: 专业（可选）
-destination: 去向（可选）
+destination: 最终去向
+program: 专业、项目或岗位（可选）
 contact: 邮箱或社交账号（可选，公开展示）
 excerpt: 一句话摘要（可选）
 tags:
@@ -18,7 +17,7 @@ tags:
 这里写正文。
 ```
 
-`category` 必须是 `data/schema.json` 中定义的分类之一。不要提交未经当事人许可的个人信息。文章中不接受直接嵌入的 HTML。
+`category` 必须是 `data/schema.json` 中定义的分类之一。不要提交未经当事人许可的个人信息。文章标题自动使用「署名 — 去向 · 专业/项目/岗位」生成，无须单独填写；正文从 Markdown 文件本体读取。文章中不接受直接嵌入的 HTML。
 
 ## 演示文章
 

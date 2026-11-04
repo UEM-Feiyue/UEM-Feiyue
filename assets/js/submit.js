@@ -62,8 +62,9 @@
         toolbar.setAttribute('role', 'toolbar');
         toolbar.setAttribute('aria-label', '正文排版快捷操作');
         const actions = [
-          ['正文', 'plain'], ['二级标题', 'h2'], ['三级标题', 'h3'], ['加粗', 'bold'],
-          ['无序列表', 'ul'], ['有序列表', 'ol'], ['引用', 'quote'], ['链接', 'link']
+          ['正文', 'plain'], ['H1', 'h1'], ['H2', 'h2'], ['H3', 'h3'],
+          ['加粗', 'bold'], ['斜体', 'italic'], ['无序列表', 'ul'],
+          ['有序列表', 'ol'], ['引用', 'quote']
         ];
         const apply = kind => {
           const start = control.selectionStart;
@@ -74,19 +75,19 @@
           if (kind === 'plain') {
             from = lineStart;
             const before = control.value.slice(from, start);
-            const prefix = /^(?:#{2,3} |[-*] |\d+\. |> )/.exec(before)?.[0] || '';
+            const prefix = /^(?:#{1,3} |[-*] |\d+\. |> )/.exec(before)?.[0] || '';
             if (!prefix) { control.focus(); return; }
             replacement = before.slice(prefix.length) + selected;
             selectStart = before.length - prefix.length;
             selectEnd = selectStart + selected.length;
-          } else if (kind === 'bold' || kind === 'link') {
-            const sample = selected || (kind === 'bold' ? '加粗文字' : '链接文字');
-            replacement = kind === 'bold' ? '**' + sample + '**' : '[' + sample + '](https://)';
+          } else if (kind === 'bold' || kind === 'italic') {
+            const sample = selected || (kind === 'bold' ? '加粗文字' : '斜体文字');
+            replacement = kind === 'bold' ? '**' + sample + '**' : '*' + sample + '*';
             selectStart = kind === 'bold' ? 2 : 1;
             selectEnd = selectStart + sample.length;
           } else {
             from = lineStart;
-            const prefix = { h2: '## ', h3: '### ', ul: '- ', ol: '1. ', quote: '> ' }[kind];
+            const prefix = { h1: '# ', h2: '## ', h3: '### ', ul: '- ', ol: '1. ', quote: '> ' }[kind];
             const before = control.value.slice(from, start);
             const lineText = before + (selected || '在这里输入内容');
             replacement = prefix + lineText;
@@ -129,7 +130,35 @@
         toolbar.append(bodyPreviewButton);
         wrapper.insertBefore(toolbar, control);
         control.after(bodyPreview);
-        const guidance = make('small', '点击上方格式按钮插入 Markdown；选择「预览排版」查看最终效果，可随时返回修改。');
+        const demoActions = make('div');
+        demoActions.className = 'demo-actions';
+        const loadDemo = make('button', '载入示例');
+        loadDemo.type = 'button';
+        loadDemo.className = 'markdown-action';
+        const clearBody = make('button', '清空正文');
+        clearBody.type = 'button';
+        clearBody.className = 'markdown-action';
+        loadDemo.addEventListener('click', async () => {
+          if (control.value.trim() && !confirm('载入示例会替换当前正文，确认继续吗？')) return;
+          try {
+            const response = await fetch('data/demo-submission.md');
+            if (!response.ok) throw new Error('Demo unavailable');
+            control.value = await response.text();
+            control.dispatchEvent(new Event('input', { bubbles: true }));
+            if (bodyPreview.hidden) bodyPreviewButton.click();
+            else renderMarkdown(control.value, bodyPreview);
+          } catch { draftStatus.textContent = '示例加载失败，请稍后重试。'; }
+        });
+        clearBody.addEventListener('click', () => {
+          if (control.value.trim() && !confirm('确定清空正文吗？')) return;
+          control.value = '';
+          control.dispatchEvent(new Event('input', { bubbles: true }));
+          if (!bodyPreview.hidden) bodyPreviewButton.click();
+          control.focus();
+        });
+        demoActions.append(loadDemo, clearBody);
+        wrapper.insertBefore(demoActions, toolbar);
+        const guidance = make('small', '可直接粘贴 Markdown；也可以载入示例学习写作，再一键清空。');
         guidance.className = 'field-hint';
         wrapper.append(guidance);
       }
@@ -193,10 +222,11 @@
       const clean = year.value.replace(/[^0-9]/g, '').slice(0, 4);
       if (year.value !== clean) year.value = clean;
     });
-    const destination = controls.get('destination');
     const updateCategory = () => {
-      const definition = schema.fields.find(field => field.name === 'destination');
-      destination.placeholder = definition.placeholders[category.value] || '';
+      for (const name of ['destination', 'program']) {
+        const definition = schema.fields.find(field => field.name === name);
+        controls.get(name).placeholder = definition.placeholders[category.value] || '';
+      }
     };
     category.addEventListener('change', updateCategory);
     updateCategory();
@@ -233,39 +263,21 @@
         updateCategory();
       });
     });
-    const addInline = (parent, source) => {
-      const parts = source.split(/(\*\*[^*]+\*\*|\[[^\]]+\]\(https?:\/\/[^ )]+\))/g);
-      for (const part of parts) {
-        if (part.startsWith('**') && part.endsWith('**')) parent.append(make('strong', part.slice(2, -2)));
-        else if (/^\[[^\]]+\]\(https?:\/\/[^ )]+\)$/.test(part)) {
-          const match = /^\[([^\]]+)\]\((https?:\/\/[^ )]+)\)$/.exec(part);
-          const link = make('a', match[1]);
-          link.href = match[2]; link.rel = 'noopener noreferrer'; link.target = '_blank';
-          parent.append(link);
-        } else parent.append(document.createTextNode(part));
-      }
-    };
     const renderMarkdown = (source, target) => {
-      target.replaceChildren();
-      let list = null;
-      for (const line of source.split(/\r?\n/)) {
-        const text = line.trim();
-        if (!text) { list = null; continue; }
-        const heading = /^(#{2,3})\s+(.+)$/.exec(text);
-        const item = /^([-*]|[0-9]+\.)\s+(.+)$/.exec(text);
-        let node;
-        if (heading) { list = null; node = make('h' + heading[1].length); addInline(node, heading[2]); target.append(node); }
-        else if (item) {
-          const kind = /^[0-9]/.test(item[1]) ? 'ol' : 'ul';
-          if (!list || list.tagName.toLowerCase() !== kind) { list = make(kind); target.append(list); }
-          node = make('li'); addInline(node, item[2]); list.append(node);
-        } else {
-          list = null;
-          node = make(text.startsWith('> ') ? 'blockquote' : 'p');
-          addInline(node, text.startsWith('> ') ? text.slice(2) : text);
-          target.append(node);
-        }
+      if (!window.marked || !window.DOMPurify) {
+        target.textContent = '预览组件暂不可用，请检查网络后刷新。';
+        return;
       }
+      // Never trust the Markdown input or allow embedded HTML to execute.
+      const safeSource = source.replace(/<(?=[a-z!/])/gi, '&lt;');
+      target.innerHTML = DOMPurify.sanitize(marked.parse(safeSource, { gfm: true, breaks: false }), {
+        USE_PROFILES: { html: true },
+        FORBID_TAGS: ['style', 'iframe', 'form'],
+        FORBID_ATTR: ['style']
+      });
+      target.querySelectorAll('a').forEach(link => {
+        link.rel = 'noopener noreferrer';
+      });
     };
     button.addEventListener('click', () => {
       for (const field of schema.fields) {
@@ -276,20 +288,25 @@
       const data = new FormData(form);
       const selected = schema.categories.find(item => item.id === data.get('category'));
       if (!selected) return;
-      previewText.replaceChildren(make('h3', String(data.get('title')).trim()));
-      const metadata = make('dl');
-      metadata.className = 'preview-meta';
-      metadata.append(make('dt', '分享方向'), make('dd', selected.label));
-      for (const field of schema.fields) {
-        if (field.name === 'title' || field.name === 'body') continue;
-        const value = String(data.get(field.name) || '').trim();
-        if (value) metadata.append(make('dt', field.label), make('dd', value + (field.suffix ? ' ' + field.suffix : '')));
-      }
-      previewText.append(metadata, make('h3', '经历正文'));
+      const author = String(data.get('author') || '').trim();
+      const destination = String(data.get('destination') || '').trim();
+      const program = String(data.get('program') || '').trim();
+      const title = author + ' — ' + destination + (program ? ' · ' + program : '');
+      previewText.replaceChildren(make('h1', title));
+      const byline = make('p', [selected.label, String(data.get('year')) + ' 届'].join(' · '));
+      byline.className = 'article-byline';
+      previewText.append(byline);
       const body = make('div');
       body.className = 'article-body';
       renderMarkdown(String(data.get('body') || ''), body);
       previewText.append(body);
+      const contact = String(data.get('contact') || '').trim();
+      if (contact) {
+        const aside = make('aside');
+        aside.className = 'article-contact';
+        aside.append(make('strong', '联系作者'), make('p', contact));
+        previewText.append(aside);
+      }
       preview.hidden = false;
       preview.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     });

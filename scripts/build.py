@@ -22,8 +22,8 @@ YEAR_SUFFIX = next(field.get("suffix", "") for field in SCHEMA["fields"] if fiel
 def display_year(value):
     value = str(value).strip()
     return value + (" " + YEAR_SUFFIX if re.fullmatch(r"[0-9]{4}", value) else "")
-ALLOWED_TAGS = set(bleach.sanitizer.ALLOWED_TAGS) | {"p", "h2", "h3", "h4", "pre", "code", "blockquote", "hr", "br", "img", "table", "thead", "tbody", "tr", "th", "td"}
-ALLOWED_ATTRS = {"a": ["href", "title"], "img": ["src", "alt", "title"], "th": ["align"], "td": ["align"], "h2": ["id"], "h3": ["id"]}
+ALLOWED_TAGS = set(bleach.sanitizer.ALLOWED_TAGS) | {"p", "h1", "h2", "h3", "h4", "del", "input", "pre", "code", "blockquote", "hr", "br", "img", "table", "thead", "tbody", "tr", "th", "td"}
+ALLOWED_ATTRS = {"a": ["href", "title"], "img": ["src", "alt", "title"], "th": ["align"], "td": ["align"], "h1": ["id"], "h2": ["id"], "h3": ["id"], "input": ["type", "checked", "disabled"]}
 
 
 def parse(path):
@@ -34,7 +34,7 @@ def parse(path):
     meta = yaml.safe_load(match.group(1))
     if not isinstance(meta, dict):
         raise ValueError(f"{path}: invalid metadata")
-    for key in ("title", "category", "author", "year"):
+    for key in ("category", "author", "year"):
         if not isinstance(meta.get(key), (str, int)) or not str(meta[key]).strip():
             raise ValueError(f"{path}: missing {key}")
     if not re.fullmatch(r"[0-9]{4}", str(meta["year"]).strip()):
@@ -50,18 +50,26 @@ def parse(path):
     return meta, body
 
 
+def display_title(meta):
+    """One title convention shared by archive cards and article pages."""
+    parts = [str(meta["author"]).strip(), str(meta.get("destination") or "").strip()]
+    title = " — ".join(part for part in parts if part)
+    program = str(meta.get("program") or "").strip()
+    return title + (" · " + program if program else "")
+
+
 def render(meta, body, url):
     # Escape inline HTML before Markdown conversion; sanitize generated HTML too.
-    rendered = markdown.markdown(html.escape(body), extensions=["extra", "toc"])
+    rendered = markdown.markdown(html.escape(body), extensions=["extra", "toc", "sane_lists"])
     clean = bleach.clean(rendered, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRS, protocols=["http", "https", "mailto"], strip=True)
-    title = html.escape(str(meta["title"]))
+    title = html.escape(display_title(meta))
     byline = " · ".join(html.escape(display_year(meta[k]) if k == "year" else str(meta[k])) for k in ("author", "year", "major") if meta.get(k))
     headings = re.findall(r'<h([23]) id="([^"]+)">(.+?)</h[23]>', clean)
     toc = '<nav class="article-toc" aria-label="文章目录"><strong>本页目录</strong><ul>' + ''.join(f'<li class="toc-depth-{level}"><a href="#{html.escape(anchor, quote=True)}">{text}</a></li>' for level, anchor, text in headings) + '</ul></nav>' if len(headings) >= 2 else ''
     demo = '<span class="demo-badge">演示内容 · 非真实投稿</span>' if meta.get('demo') is True else ''
     contact = f'<aside class="article-contact"><strong>联系作者</strong><p>{html.escape(str(meta["contact"]))}</p></aside>' if meta.get("contact") else ""
     return f"""<!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="{html.escape(str(meta.get('excerpt') or meta['title']), quote=True)}"><title>{title} · UEM Feiyue</title><link rel="stylesheet" href="../assets/css/site.css"><script defer src="../assets/js/site.js"></script></head>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="{html.escape(str(meta.get('excerpt') or display_title(meta)), quote=True)}"><title>{title} · UEM Feiyue</title><link rel="stylesheet" href="../assets/css/site.css"><script defer src="../assets/js/site.js"></script></head>
 <body><a class="skip-link" href="#main">跳转到正文</a><div class="shell">
 <aside class="sidebar" id="sidebar" aria-label="侧边导航"><a class="brand" href="../"><span class="brand-mark" aria-hidden="true">跃</span><span><strong>UEM Feiyue</strong><small>应急管理大学飞跃手册</small></span></a><nav class="nav" id="category-nav" aria-label="主导航"><a href="../" data-view="home">首页</a><a href="../?view=all" data-category="all">全部经历</a><a href="../submit.html" class="nav-contribute">投稿分享 <span class="link-arrow" aria-hidden="true"></span></a></nav><div class="sidebar-bottom"><button class="sidebar-theme" id="theme-toggle-mobile" type="button" aria-label="切换明暗主题">◐ <span>切换明暗主题</span></button></div></aside>
 <div class="page"><header class="topbar"><button class="icon-button menu-button" id="menu-toggle" type="button" aria-label="打开导航" aria-controls="sidebar" aria-expanded="false">☰</button><a class="mobile-brand" href="../">UEM Feiyue</a><div class="top-actions"><button class="icon-button" id="theme-toggle" type="button" aria-label="切换明暗主题">◐</button></div></header>
@@ -86,11 +94,12 @@ def main():
         pages[filename] = render(meta, body, url)
         entries.append({
             "demo": meta.get("demo") is True,
-            "title": str(meta["title"]),
+            "title": display_title(meta),
             "category": meta["category"],
             "author": str(meta["author"]),
             "year": str(meta["year"]),
             "major": str(meta.get("major", "")),
+            "program": str(meta.get("program", "")),
             "destination": str(meta.get("destination", "")),
             "excerpt": str(meta.get("excerpt") or re.sub(r"\s+", " ", re.sub(r"[#*_`]", "", body))[:150]),
             "tags": meta.get("tags", []),
