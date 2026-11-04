@@ -11,17 +11,28 @@
 
   const sidebar = document.querySelector('#sidebar');
   const toggle = document.querySelector('#menu-toggle');
-  const scrim = document.querySelector('#scrim');
-  const close = () => { sidebar.classList.remove('open'); toggle.setAttribute('aria-expanded', 'false'); toggle.setAttribute('aria-label', '打开导航'); scrim.hidden = true; };
+  const mobile = matchMedia('(max-width: 900px)');
+  const closeMenu = (restoreFocus = false) => {
+    sidebar.classList.remove('open');
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-label', '打开导航');
+    if (restoreFocus && mobile.matches) toggle.focus();
+  };
   toggle?.addEventListener('click', () => {
     const open = sidebar.classList.toggle('open');
     toggle.setAttribute('aria-expanded', String(open));
     toggle.setAttribute('aria-label', open ? '关闭导航' : '打开导航');
-    scrim.hidden = !open;
   });
-  scrim?.addEventListener('click', close);
-  sidebar?.querySelectorAll('a').forEach(a => a.addEventListener('click', close));
-  document.addEventListener('keydown', event => { if (event.key === 'Escape') close(); });
+  document.addEventListener('click', event => {
+    if (sidebar.classList.contains('open') && !sidebar.contains(event.target) && !toggle.contains(event.target)) closeMenu();
+  });
+  sidebar?.addEventListener('click', event => {
+    if (event.target.closest('a')) closeMenu();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && sidebar.classList.contains('open')) closeMenu(true);
+  });
+  mobile.addEventListener('change', () => closeMenu());
 
   const el = (tag, className, content) => {
     const node = document.createElement(tag);
