@@ -1,24 +1,27 @@
 (() => {
   const root = document.documentElement;
-  const saved = localStorage.getItem('uem-theme');
+  let saved;
+  try { saved = localStorage.getItem('uem-theme'); } catch {}
   if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
   const theme = document.querySelector('#theme-toggle');
   theme?.addEventListener('click', () => {
     const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
     root.dataset.theme = next;
-    localStorage.setItem('uem-theme', next);
+    try { localStorage.setItem('uem-theme', next); } catch {}
   });
 
   const sidebar = document.querySelector('#sidebar');
   const toggle = document.querySelector('#menu-toggle');
   const scrim = document.querySelector('#scrim');
-  const close = () => { sidebar.classList.remove('open'); toggle.setAttribute('aria-expanded', 'false'); scrim.hidden = true; };
+  const close = () => { sidebar.classList.remove('open'); toggle.setAttribute('aria-expanded', 'false'); toggle.setAttribute('aria-label', '打开导航'); scrim.hidden = true; };
   toggle?.addEventListener('click', () => {
     const open = sidebar.classList.toggle('open');
     toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? '关闭导航' : '打开导航');
     scrim.hidden = !open;
   });
   scrim?.addEventListener('click', close);
+  sidebar?.querySelectorAll('a').forEach(a => a.addEventListener('click', close));
   document.addEventListener('keydown', event => { if (event.key === 'Escape') close(); });
 
   const el = (tag, className, content) => {
@@ -43,7 +46,7 @@
     const count = document.querySelector('#results-count');
     for (const item of schema.categories) {
       const a = el('a', '', item.label);
-      a.href = './?category=' + encodeURIComponent(item.id);
+      a.href = base + '?category=' + encodeURIComponent(item.id);
       a.dataset.category = item.id;
       nav.append(a);
       if (grid) {
@@ -84,6 +87,10 @@
         heading.append(link);
         if (item.demo) article.append(el('span', 'demo-badge', '演示'));
         article.append(el('p', 'article-meta', [schema.categories.find(c => c.id === item.category)?.label, item.year && item.year + ' 届', item.major].filter(Boolean).join(' · ')), heading, el('p', 'article-excerpt', item.excerpt || ''));
+        const more = el('a', 'article-more', '阅读全文 ');
+        more.href = base + item.url;
+        more.append(el('span', 'arrow-icon', '↗'));
+        article.append(more);
         results.append(article);
       }
       nav.querySelectorAll('[data-category]').forEach(a => a.removeAttribute('aria-current'));
