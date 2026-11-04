@@ -3,12 +3,11 @@
   let saved;
   try { saved = localStorage.getItem('uem-theme'); } catch {}
   if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
-  const theme = document.querySelector('#theme-toggle');
-  theme?.addEventListener('click', () => {
+  document.querySelectorAll('#theme-toggle, #theme-toggle-mobile').forEach(theme => theme.addEventListener('click', () => {
     const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
     root.dataset.theme = next;
     try { localStorage.setItem('uem-theme', next); } catch {}
-  });
+  }));
 
   const sidebar = document.querySelector('#sidebar');
   const toggle = document.querySelector('#menu-toggle');
@@ -38,9 +37,16 @@
   };
   Promise.all([load('data/schema.json'), load('data/articles.json')]).then(([schema, articles]) => {
     const nav = document.querySelector('#category-nav');
-    const grid = document.querySelector('#category-grid');
+
     const selected = new URLSearchParams(location.search).get('category');
     const activeCategory = schema.categories.some(item => item.id === selected) ? selected : 'all';
+    const isHome = !selected && new URLSearchParams(location.search).get('view') !== 'all';
+    const home = document.querySelector('#home-intro');
+    const archiveIntro = document.querySelector('#archive-intro');
+    const archiveSection = document.querySelector('#archive-section');
+    if (home) home.hidden = !isHome;
+    if (archiveIntro) archiveIntro.hidden = isHome;
+    if (archiveSection) archiveSection.hidden = isHome;
     const current = schema.categories.find(item => item.id === activeCategory);
     const heading = document.querySelector('#stories-heading');
     const intro = document.querySelector('#category-intro');
@@ -55,13 +61,6 @@
       a.href = base + '?category=' + encodeURIComponent(item.id);
       a.dataset.category = item.id;
       nav.append(a);
-      if (grid) {
-        const card = el('a', 'category-card');
-        card.href = a.href;
-        card.append(el('span', 'category-name', item.label), el('span', 'category-desc', item.description), el('span', 'category-arrow', '↗'));
-        grid.append(card);
-      }
-
     }
     if (!results) return;
 
@@ -75,7 +74,8 @@
       if (!visible.length) {
         const empty = el('div', 'empty-state');
         empty.append(el('h3', '', articles.length ? '暂时没有匹配的经历' : '故事即将从这里开始'), el('p', '', articles.length ? '试试其他关键词或筛选条件。' : '第一篇真实分享，期待由你写下。'));
-        const link = el('a', 'text-link', '分享我的经历 ↗');
+        const link = el('a', 'text-link', '分享我的经历');
+        link.append(el('span', 'link-arrow'));
         link.href = 'submit.html';
         empty.append(link);
         results.append(empty);
@@ -89,12 +89,13 @@
         article.append(el('p', 'article-meta', [schema.categories.find(c => c.id === item.category)?.label, item.year && item.year + ' 届', item.major].filter(Boolean).join(' · ')), heading, el('p', 'article-excerpt', item.excerpt || ''));
         const more = el('a', 'article-more', '阅读全文 ');
         more.href = base + item.url;
-        more.append(el('span', 'arrow-icon', '↗'));
+        more.append(el('span', 'link-arrow'));
         article.append(more);
         results.append(article);
       }
-      nav.querySelectorAll('[data-category]').forEach(a => a.removeAttribute('aria-current'));
-      nav.querySelector('[data-category="' + activeCategory + '"]')?.setAttribute('aria-current', 'page');
+      nav.querySelectorAll('[data-category], [data-view]').forEach(a => a.removeAttribute('aria-current'));
+      if (isHome) nav.querySelector('[data-view="home"]')?.setAttribute('aria-current', 'page');
+      if (!isHome) nav.querySelector('[data-category="' + activeCategory + '"]')?.setAttribute('aria-current', 'page');
     };
     search.addEventListener('input', render);
     year.addEventListener('change', render);
