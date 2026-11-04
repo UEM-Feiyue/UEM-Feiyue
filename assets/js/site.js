@@ -67,6 +67,15 @@
     const intro = document.querySelector('#category-intro');
     if (heading) heading.textContent = current ? current.label + '经历' : '全部经历';
     if (intro) intro.textContent = current ? current.description + '，阅读同学的经验分享。' : '按方向浏览同学分享的升学与职业经验。';
+    const heroPaths = document.querySelector('#hero-paths');
+    if (heroPaths) {
+      for (const item of schema.categories) {
+        const link = el('a', 'hero-path', item.label);
+        link.href = base + '?category=' + encodeURIComponent(item.id);
+        link.append(el('span', 'link-arrow'));
+        heroPaths.append(link);
+      }
+    }
     for (const item of schema.categories) {
       const link = el('a', '', item.label);
       link.href = base + '?category=' + encodeURIComponent(item.id);
