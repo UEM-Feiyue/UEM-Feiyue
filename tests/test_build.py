@@ -20,6 +20,7 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertNotIn("hero-visual", homepage)
         self.assertNotIn("hero-paths", homepage)
         self.assertIn('data-site-footer', homepage)
+        self.assertIn('data-site-footer', (ROOT / 'submit.html').read_text(encoding='utf-8'))
         self.assertIn('class="site-footer"', homepage)
         self.assertNotIn('class="hero-corner"', homepage)
         self.assertIn('background:transparent;min-height', stylesheet)
