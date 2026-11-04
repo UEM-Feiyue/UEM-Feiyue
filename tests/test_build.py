@@ -17,6 +17,8 @@ class SubmissionBuildTests(unittest.TestCase):
         submission = (ROOT / "submit.html").read_text(encoding="utf-8")
         self.assertIn('url("../images/anguo-garden.jpg")', stylesheet)
         self.assertIn("--photo-overlay", stylesheet)
+        self.assertIn("@view-transition{navigation:auto}", stylesheet)
+        self.assertIn('rel="preload" as="image"', homepage)
         self.assertNotIn(".page.is-home{background-image:", stylesheet)
         self.assertIn("body{", stylesheet)
         self.assertIn("background:var(--footer-surface)", stylesheet)

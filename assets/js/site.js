@@ -70,11 +70,11 @@
     const brand = el('a', 'footer-brand-link');
     brand.href = base;
     const logo = el('img', 'footer-logo');
-    logo.src = base + 'assets/images/favicon-横版.png';
-    logo.alt = '应急管理大学飞跃手册';
-    logo.width = 1226;
-    logo.height = 285;
-    brand.append(logo);
+    logo.src = base + 'assets/icons/favicon.svg';
+    logo.alt = '';
+    logo.width = 52;
+    logo.height = 52;
+    brand.append(logo, el('span', 'footer-brand-name', '应急管理大学飞跃手册'));
     identity.append(brand, el('p', '', '记录升学与职业路上的真实经历，让经验被看见，让后来者少走弯路。'));
     const linksSection = el('div');
     linksSection.append(el('h2', 'footer-title', '探索'));
