@@ -3,12 +3,12 @@
   const root = document.documentElement;
   const syncThemeControls = () => {
     const dark = root.dataset.theme === 'dark';
-    document.querySelectorAll('#theme-toggle, #theme-toggle-mobile').forEach(button => {
+    document.querySelectorAll('#theme-toggle').forEach(button => {
       button.setAttribute('aria-label', dark ? '切换明亮主题' : '切换暗黑主题');
       button.setAttribute('aria-pressed', String(dark));
     });
   };
-  document.querySelectorAll('#theme-toggle, #theme-toggle-mobile').forEach(button => button.addEventListener('click', () => {
+  document.querySelectorAll('#theme-toggle').forEach(button => button.addEventListener('click', () => {
     const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
     root.dataset.theme = next;
     try { localStorage.setItem('uem-theme', next); } catch {}
@@ -58,19 +58,71 @@
   const year = document.querySelector('#year-filter');
   const search = document.querySelector('#search');
   const cards = [...archive.querySelectorAll('.article-item')];
+  const siteRoot = new URL('./', location.href).pathname;
+  const indexedPath = path => path.startsWith(siteRoot) ? '/' + path.slice(siteRoot.length) : path;
+  const originalExcerpts = new Map(cards.map(card => [card, card.querySelector('.article-excerpt').textContent]));
+  const status = document.querySelector('#search-status');
+  const empty = document.querySelector('#empty-state');
+  const count = document.querySelector('#results-count');
   let activeCategory = 'all';
+  let matches = null;
+  let searching = false;
+  let requestId = 0;
+  let engine;
+  const loadSearch = () => engine ??= import('/pagefind/pagefind.js');
   const renderFilters = () => {
-    const query = search.value.trim().toLocaleLowerCase();
-    let count = 0, hasDemo = false;
+    let visibleCount = 0;
+    let hasDemo = false;
     for (const card of cards) {
-      const visible = (activeCategory === 'all' || card.dataset.category === activeCategory) &&
-        (year.value === 'all' || card.dataset.year === year.value) &&
-        card.dataset.search.toLocaleLowerCase().includes(query);
+      const articleUrl = indexedPath(card.querySelector('h3 a').pathname);
+      const visible = !searching && (matches === null || matches.has(articleUrl)) &&
+        (activeCategory === 'all' || card.dataset.category === activeCategory) &&
+        (year.value === 'all' || card.dataset.year === year.value);
       card.hidden = !visible;
-      if (visible) { count++; hasDemo ||= card.dataset.demo === 'true'; }
+      card.querySelector('.article-excerpt').textContent =
+        matches?.get(articleUrl) || originalExcerpts.get(card);
+      if (visible) {
+        visibleCount++;
+        hasDemo ||= card.dataset.demo === 'true';
+      }
     }
-    document.querySelector('#results-count').textContent = count + ' 篇经历' + (hasDemo ? ' · 含演示内容' : '');
-    document.querySelector('#empty-state').hidden = count > 0;
+    count.textContent = searching ? '正在搜索…' :
+      visibleCount + ' 篇经历' + (hasDemo ? ' · 含演示内容' : '');
+    empty.hidden = searching || visibleCount > 0;
+  };
+  const searchArticles = async () => {
+    const query = search.value.trim();
+    const id = ++requestId;
+    matches = null;
+    searching = Boolean(query);
+    status.hidden = !query;
+    if (!query) {
+      status.textContent = '';
+      renderFilters();
+      return;
+    }
+    status.textContent = '正在搜索文章全文…';
+    renderFilters();
+    try {
+      const pagefind = await loadSearch();
+      const result = await pagefind.search(query);
+      if (id !== requestId) return;
+      const pages = await Promise.all(result.results.map(item => item.data()));
+      if (id !== requestId) return;
+      matches = new Map(pages.map(page => [new URL(page.url, location.href).pathname,
+        page.plain_excerpt || page.meta?.title || '']));
+      status.textContent = result.results.length ? '全文搜索结果' : '没有找到匹配内容';
+    } catch (error) {
+      if (id !== requestId) return;
+      matches = new Map();
+      status.textContent = '全文搜索暂不可用，请刷新页面后重试。';
+      console.error('Pagefind search failed', error);
+    } finally {
+      if (id === requestId) {
+        searching = false;
+        renderFilters();
+      }
+    }
   };
   const renderView = () => {
     const params = new URLSearchParams(location.search);
@@ -89,14 +141,17 @@
     document.querySelector('#category-intro').textContent = current ? current.dataset.categoryDescription + '，阅读同学的经验分享。' : '按方向浏览同学分享的升学与职业经验。';
     search.value = history.state?.search || '';
     year.value = history.state?.year || 'all';
-    renderFilters();
+    searchArticles();
   };
   const filter = () => {
     history.replaceState({...history.state, search: search.value, year: year.value}, '');
-    renderFilters();
+    searchArticles();
   };
   search.addEventListener('input', filter);
-  year.addEventListener('change', filter);
+  year.addEventListener('change', () => {
+    history.replaceState({...history.state, search: search.value, year: year.value}, '');
+    renderFilters();
+  });
   const indexPath = path => path.replace(/index\.html$/, '');
   document.addEventListener('click', event => {
     const link = event.target.closest('a[href]');

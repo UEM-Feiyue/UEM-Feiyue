@@ -38,6 +38,21 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertNotIn("hero-corner", homepage)
         self.assertIn('theme-init.js', build.render({"category": "career", "author": "同学", "year": "2026", "destination": "企业"}, "## 正文", "articles/test.html"))
 
+    def test_pagefind_indexing_and_sidebar_chrome(self):
+        homepage = (ROOT / "index.html").read_text(encoding="utf-8")
+        submission = (ROOT / "submit.html").read_text(encoding="utf-8")
+        renderer = (ROOT / "scripts/site_build.py").read_text(encoding="utf-8")
+        article = build.render({"category": "career", "author": "同学", "year": "2026", "destination": "企业"}, "## 搜索正文", "articles/sample.html")
+        for html_source in (homepage, submission):
+            self.assertIn("<body data-pagefind-ignore>", html_source)
+            self.assertEqual(html_source.count('id="theme-toggle"'), 1)
+            self.assertNotIn('id="theme-toggle-mobile"', html_source)
+        self.assertIn('data-pagefind-body', article)
+        self.assertNotIn('data-pagefind-ignore', article)
+        self.assertIn('"pagefind"', renderer)
+        self.assertNotIn('data-search=', homepage)
+        self.assertIn('id="search-status"', homepage)
+
     def test_published_article_brand_assets(self):
         meta = {"category": "career", "author": "同学", "year": "2026", "destination": "企业"}
         page = build.render(meta, "## 正文", "articles/example.html")

@@ -13,16 +13,16 @@
 
 <link rel="expect" href="#main" blocking="render">
 </head>
-<body>
+<body data-pagefind-ignore>
 <a class="skip-link" href="#main">跳转到正文</a>
 <div class="shell">
-<aside class="sidebar" id="sidebar" aria-label="侧边导航"><a class="brand" href="./"><img class="brand-logo" src="./assets/images/favicon-横版.png" alt="UEM Feiyue · 应急管理大学飞跃手册" width="1226" height="285"></a><nav class="nav" id="category-nav" aria-label="主导航"><a href="./" data-view="home" aria-current="page">首页</a><a href="./?view=all" data-category="all">全部经历</a><a href="./?category=kaoyan" data-category="kaoyan" data-category-label="考研" data-category-description="备考、复试与录取经历">考研</a><a href="./?category=overseas" data-category="overseas" data-category-label="留学" data-category-description="选校、申请与海外求学">留学</a><a href="./?category=career" data-category="career" data-category-label="就业" data-category-description="实习、校招与职场起步">就业</a><a href="./?category=public" data-category="public" data-category-label="考公考编" data-category-description="备考、招录与面试经验">考公考编</a><a href="./submit.html" class="nav-contribute">投稿分享 <span class="link-arrow" aria-hidden="true"></span></a></nav><div class="sidebar-bottom"><button class="sidebar-theme" id="theme-toggle-mobile" type="button" aria-label="切换明暗主题">◐ <span>切换明暗主题</span></button></div></aside>
+<aside class="sidebar" id="sidebar" aria-label="侧边导航"><a class="brand" href="./"><img class="brand-logo" src="./assets/images/favicon-横版.png" alt="UEM Feiyue · 应急管理大学飞跃手册" width="1226" height="285"></a><nav class="nav" id="category-nav" aria-label="主导航"><a href="./" data-view="home" aria-current="page">首页</a><a href="./?view=all" data-category="all">全部经历</a><a href="./?category=kaoyan" data-category="kaoyan" data-category-label="考研" data-category-description="备考、复试与录取经历">考研</a><a href="./?category=overseas" data-category="overseas" data-category-label="留学" data-category-description="选校、申请与海外求学">留学</a><a href="./?category=career" data-category="career" data-category-label="就业" data-category-description="实习、校招与职场起步">就业</a><a href="./?category=public" data-category="public" data-category-label="考公考编" data-category-description="备考、招录与面试经验">考公考编</a><a href="./submit.html" class="nav-contribute">投稿分享 <span class="link-arrow" aria-hidden="true"></span></a></nav><div class="sidebar-bottom"><button class="sidebar-theme" id="theme-toggle" type="button" aria-label="切换明暗主题" aria-pressed="false">◐ <span>切换明暗主题</span></button></div></aside>
 
 <div class="page is-home">
 <header class="topbar">
         <button class="icon-button menu-button" id="menu-toggle" type="button" aria-label="打开导航" aria-controls="sidebar" aria-expanded="false">☰</button>
         <a class="mobile-brand" href="./"><img class="mobile-brand-logo" src="./assets/images/favicon-横版.png" alt="UEM Feiyue · 应急管理大学飞跃手册" width="1226" height="285"></a>
-        <div class="top-actions"><button class="icon-button" id="theme-toggle" type="button" aria-label="切换明暗主题">◐</button></div>
+        
       </header>
 <div class="campus-banner" aria-hidden="true"></div>
 
@@ -36,7 +36,7 @@
             <div class="home-guide"><h2>由同学分享，为同学留存</h2><p>按方向浏览真实经验，也欢迎将自己的经历留给后来的人。</p></div>
           </div>
         </section><section class="archive-intro" id="archive-intro" hidden aria-labelledby="stories-heading"><p class="eyebrow">EXPERIENCES</p><h1 id="stories-heading">全部经历</h1><p class="lead" id="category-intro">按方向浏览同学分享的升学与职业经验。</p></section>
-        <section class="section" id="archive-section" aria-labelledby="archive-heading"><div class="section-heading"><div><p class="eyebrow">STORIES</p><h2 id="archive-heading">经验分享</h2></div><p id="results-count" aria-live="polite"></p></div><div class="filters"><label class="search-field"><span class="visually-hidden">搜索经历</span><input id="search" type="search" placeholder="搜索标题、学校、专业、关键词…" autocomplete="off"></label><label class="visually-hidden" for="year-filter">按届次筛选</label><select id="year-filter"><option value="all">全部届次</option></select></div><div id="articles" class="article-list" aria-live="polite">
+        <section class="section" id="archive-section" aria-labelledby="archive-heading"><div class="section-heading"><div><p class="eyebrow">STORIES</p><h2 id="archive-heading">经验分享</h2></div><p id="results-count" aria-live="polite"></p></div><div class="filters"><label class="search-field"><span class="visually-hidden">搜索经历</span><input id="search" type="search" placeholder="搜索文章全文、标题和关键词…" autocomplete="off"></label><label class="visually-hidden" for="year-filter">按届次筛选</label><select id="year-filter"><option value="all">全部届次</option></select></div><p id="search-status" class="search-status" role="status" aria-live="polite" hidden></p><div id="articles" class="article-list" aria-live="polite">
 <!-- Article cards are generated from content/ during the build. -->
 </div>
 <div id="empty-state" class="empty-state" hidden><h3>暂时没有匹配的经历</h3><p>试试其他关键词或筛选条件。</p><a class="text-link" href="./submit.html">分享我的经历<span class="link-arrow"></span></a></div></section>

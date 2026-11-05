@@ -1,6 +1,7 @@
 packaging>=24,<27
 
 Markdown>=3.7,<4
+pagefind[extended]==1.5.2
 PyYAML>=6,<7
 bleach>=6,<7
 pymdown-extensions>=10,<11
