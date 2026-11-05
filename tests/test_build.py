@@ -75,8 +75,14 @@ class SubmissionBuildTests(unittest.TestCase):
                     with self.subTest(field=field["name"]), self.assertRaises(ValueError):
                         build.parse(source)
                 if field.get("maxLength"):
-                    values = dict(meta, **{field["name"]: "x" * (field["maxLength"] + 1)})
-                    source.write_text("---\n" + build.yaml.safe_dump(values) + "---\nBody", encoding="utf-8")
+                    excessive = "x" * (field["maxLength"] + 1)
+                    values = dict(meta)
+                    body = "Body"
+                    if field["name"] == "body":
+                        body = excessive
+                    else:
+                        values[field["name"]] = excessive
+                    source.write_text("---\n" + build.yaml.safe_dump(values) + "---\n" + body, encoding="utf-8")
                     with self.subTest(limit=field["name"]), self.assertRaises(ValueError):
                         build.parse(source)
 

@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "uem-feiyue-submissions",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-05",
+  "workers_dev": true,
+  "vars": {
+    "SUBMISSION_MODE": "closed",
+    "SUBMISSIONS_DISABLED": "true"
+  },
+  "ratelimits": [
+    {
+      "name": "SUBMISSION_LIMITER",
+      "namespace_id": "20002",
+      "simple": { "limit": 3, "period": 60 }
+    }
+  ]
+}

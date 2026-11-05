@@ -89,7 +89,9 @@ def main():
                     assert page.locator("#preview").is_visible()
                     assert page.locator("#preview .article-body strong").inner_text() == "Test body"
                     assert not page.evaluate("Boolean(window.__unsafe)")
-                    assert "尚未连接 GitHub Issue" in page.locator(".notice").inner_text()
+                    assert "公开 GitHub Issue" in page.locator(".notice").inner_text()
+                    assert page.locator("#submit-button").is_hidden()
+                    assert "暂未开放" in page.locator("#submission-status").inner_text()
                     page.reload(wait_until="networkidle")
                     page.wait_for_selector("#body")
                     assert page.locator("#author").input_value() == "Browser test"
@@ -130,6 +132,39 @@ def main():
                 assert page.locator("h1").count() >= 1
                 if route == "/":
                     assert page.locator(".article-item:visible").count() == len(articles)
+            context.close()
+            # Mocked public mode: confirm the complete browser payload/feedback
+            # without contacting Cloudflare or opening an actual GitHub Issue.
+            context = browser.new_context()
+            page = context.new_page()
+            submissions = []
+            page.route("**/assets/js/submission-config.js*", lambda route: route.fulfill(
+                content_type="application/javascript",
+                body="window.UEM_SUBMISSION_CONFIG={enabled:true,apiEndpoint:'https://uem-feiyue-submissions.futseyi.workers.dev/submit',turnstileSiteKey:'test-site-key'};"
+            ))
+            page.route("https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit",
+                       lambda route: route.fulfill(content_type="application/javascript",
+                           body="window.turnstile={render:(_,o)=>{setTimeout(()=>o.callback(),0);return 'test-widget';},getResponse:()=> 'test-token',reset:()=>{}};"))
+            def accept_submission(route):
+                submissions.append(route.request.post_data_json)
+                route.fulfill(status=201, content_type="application/json",
+                              headers={"Access-Control-Allow-Origin": base},
+                              body=json.dumps({"ok": True, "issueUrl": "https://github.com/UEM-Feiyue/UEM-Feiyue.github.io/issues/57"}))
+            page.route("https://uem-feiyue-submissions.futseyi.workers.dev/submit", accept_submission)
+            page.goto(base + "/submit.html", wait_until="networkidle")
+            page.wait_for_selector("#body")
+            page.locator("#category").select_option("career")
+            page.locator("#author").fill("测试同学")
+            page.locator("#year").fill("2026")
+            page.locator("#destination").fill("某公司")
+            page.locator("#body").fill("## 完整经历\\n\\n测试内容")
+            page.wait_for_function("!document.querySelector('#submit-button').disabled", timeout=10000)
+            page.locator("#submit-button").click()
+            page.get_by_text("查看投稿记录").wait_for()
+            assert len(submissions) == 1
+            assert submissions[0]["category"] == "career"
+            assert submissions[0]["turnstileToken"] == "test-token"
+            assert page.locator("#author").input_value() == ""
             context.close()
             browser.close()
     finally:

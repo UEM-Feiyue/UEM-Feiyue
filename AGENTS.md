@@ -16,8 +16,8 @@
 
 ## Project structure and development
 
-- Root `index.html` and `submit.html` are directly editable UI sources. Keep `assets/`, `content/`, `data/`, `scripts/` and `tests/` organized by their actual project responsibilities. Add a Worker only when a real submission backend is needed.
+- Root `index.html` and `submit.html` are directly editable UI sources. Keep `assets/`, `content/`, `data/`, `scripts/` and `tests/` organized by their actual project responsibilities. The independent Worker accepts public Issues only after explicit launch. The maintainer-only Completed closure importer owns reviewed Markdown publication; never bypass GitHub review.
 - `preview.py` provides local preview and verified artifact replacement; `scripts/site_build.py` runs this project's content pipeline in isolation. Publish `_site/` only. Shared page chrome is drawn from the homepage during generation; do not add a separate framework merely to make this repository resemble another site.
-- Schema owns required fields, limits and patterns. Keep the explicit preview-only submission state until a real backend is implemented and verified.
+- Schema owns required fields, limits and patterns. Keep the safe launch switch disabled until the live Worker, Turnstile, GitHub token, closed/reopened moderation paths and browser publishing flow have been verified.
 - Run `python -m unittest discover -s tests -t . -p 'test_*.py'`, `python preview.py --build-only` and `python tests/browser_smoke.py` for structural/UI changes. Each repository can evolve independently after this quality alignment.
 - Treat cross-project alignment as a quality baseline, not a fixed repository template. Prefer familiar, purpose-driven organization; reuse proven logic only when it suits this project. Each site may evolve its UI, dependencies and structure independently.

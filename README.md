@@ -10,7 +10,7 @@ py -3 preview.py
 
 macOS / Linux 使用 `python3 preview.py`。访问 <http://127.0.0.1:8765/>；保存内容后自动构建，刷新浏览器查看。仅构建使用 `py -3 preview.py --build-only`。初次运行会按需安装本项目依赖到 `.venv/`；不用额外启动源码目录服务器。
 
-投稿表单目前仅提供预览与标签页草稿，**尚未连接 GitHub Issues**，不会真正投稿。联系方式不会写入草稿。
+投稿表单保留预览与标签页草稿（联系方式不保存）。已实现独立 Cloudflare Worker → 公开 GitHub Issues → 维护者以 Close as completed 审核 → Markdown 自动发布链路。**公开投稿仍默认关闭**，须在验证端到端部署之后启用 `assets/js/submission-config.js` 的 `enabled` 开关与 Cloudflare Worker 公开模式；配置与操作见 [worker/README.md](worker/README.md)。
 
 ## 页面与内容
 

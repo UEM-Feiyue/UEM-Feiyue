@@ -74,7 +74,8 @@
       "type": "textarea",
       "required": true,
       "placeholder": "写下准备过程、关键节点、经验教训，以及想对学弟学妹说的话",
-      "hint": "支持直接粘贴 Markdown；可载入示例并切换预览。"
+      "hint": "支持直接粘贴 Markdown；可载入示例并切换预览。",
+      "maxLength": 8000
     },
     {
       "name": "contact",
@@ -82,7 +83,8 @@
       "type": "textarea",
       "required": false,
       "placeholder": "选填公开邮箱或社交账号",
-      "hint": "仅填写愿意公开的信息；正式发布时可能公开展示。"
+      "hint": "仅填写愿意公开的信息；正式发布时可能公开展示。",
+      "maxLength": 500
     }
   ]
 }

@@ -312,6 +312,74 @@
     });
     for (const control of controls.values()) control.addEventListener('input', () => control.setCustomValidity(''));
 
+    // Public posting is opt-in. A successful Issue creation is not publication.
+    const submitButton = document.querySelector('#submit-button');
+    const submitStatus = document.querySelector('#submission-status');
+    const captchaHost = document.querySelector('#submission-turnstile');
+    const config = window.UEM_SUBMISSION_CONFIG || {};
+    const enabled = config.enabled === true &&
+      /^https:\/\//.test(config.apiEndpoint || '') && Boolean(config.turnstileSiteKey);
+    let widgetId = null;
+    let submitting = false;
+    const say = message => { submitStatus.textContent = message; };
+    if (enabled) {
+      submitButton.hidden = false;
+      captchaHost.hidden = false;
+      say('请先完成人机验证，再确认公开投稿。');
+      const captchaScript = document.createElement('script');
+      captchaScript.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      captchaScript.async = true;
+      captchaScript.onload = () => {
+        try {
+          widgetId = window.turnstile.render(captchaHost, {
+            sitekey: config.turnstileSiteKey,
+            action: 'uem_feiyue_submit',
+            callback: () => { if (!submitting) submitButton.disabled = false; },
+            'expired-callback': () => { submitButton.disabled = true; say('验证已过期，请重新验证。'); },
+            'error-callback': () => { submitButton.disabled = true; say('人机验证暂不可用，请刷新重试。'); }
+          });
+        } catch { say('无法加载人机验证，请刷新重试。'); }
+      };
+      captchaScript.onerror = () => say('无法加载人机验证，请稍后重试。');
+      document.head.append(captchaScript);
+      submitButton.addEventListener('click', async () => {
+        if (submitting || !form.reportValidity()) return;
+        const token = widgetId === null ? '' : window.turnstile?.getResponse(widgetId);
+        if (!token) { say('请先完成人机验证。'); return; }
+        const values = Object.fromEntries(new FormData(form));
+        const payload = { version: 1, ...values, turnstileToken: token };
+        if (new TextEncoder().encode(JSON.stringify(payload)).length > 65536) {
+          say('内容过长，请精简后重试。');
+          return;
+        }
+        submitting = true;
+        submitButton.disabled = true;
+        say('正在提交，请勿重复点击。');
+        try {
+          const response = await fetch(config.apiEndpoint, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const result = await response.json();
+          if (!response.ok || !result.ok || !/^https:\/\/github\.com\/UEM-Feiyue\/UEM-Feiyue\.github\.io\/issues\/\d+$/.test(result.issueUrl || ''))
+            throw new Error(result.message || '投稿未成功，请稍后再试。');
+          form.reset();
+          submitStatus.replaceChildren(make('span', '投稿已保存为公开 Issue，等待审核：'));
+          const link = make('a', '查看投稿记录');
+          link.href = result.issueUrl;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          submitStatus.append(link);
+        } catch (error) {
+          say(error.message || '网络异常，投稿未确认保存。请检查 Issue 列表后再试。');
+        } finally {
+          submitting = false;
+          window.turnstile?.reset(widgetId);
+          submitButton.disabled = true;
+        }
+      });
+    }
+
   }).catch(() => {
     fields.textContent = '表单加载失败，请刷新重试。';
     button.disabled = true;
