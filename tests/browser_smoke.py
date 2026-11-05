@@ -89,6 +89,18 @@ def main():
                     assert abs(background["bannerWidth"] - background["containerWidth"]) <= 1
                     assert background["contentTop"] >= background["bannerBottom"] - 1
                     assert background["contentBackground"] != "rgba(0, 0, 0, 0)"
+                    # Logo on the current homepage must scroll even when the URL
+                    # remains unchanged. The previous same-URL guard swallowed it.
+                    brand = ".mobile-brand" if width <= 900 else ".sidebar .brand"
+                    assert page.locator(brand).is_visible()
+                    assert page.locator(brand + " img").evaluate(
+                        "el => getComputedStyle(el).maskImage.includes('radial-gradient')"
+                    )
+                    page.evaluate("window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'})")
+                    page.wait_for_function("scrollY > 100")
+                    page.locator(brand).click()
+                    page.wait_for_function("scrollY <= 2")
+                    assert page.url.rstrip("/").endswith(PREFIX)
                     assert page.locator("#category-nav [data-category]").count() == 5
                     assert page.locator(".site-footer").count() == 1
                     # Footer columns align to the outside edges of the content area.

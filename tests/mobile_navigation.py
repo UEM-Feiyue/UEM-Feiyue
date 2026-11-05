@@ -48,6 +48,13 @@ def main():
                         "el => Math.abs(el.getBoundingClientRect().top - "
                         "document.querySelector('.topbar').getBoundingClientRect().bottom) <= 1"
                     )
+                    assert page.locator(".mobile-brand-logo").evaluate(
+                        "el => getComputedStyle(el).maskImage.includes('radial-gradient')"
+                    )
+                    page.evaluate("window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'})")
+                    page.wait_for_function("scrollY > 100")
+                    page.locator(".mobile-brand").click()
+                    page.wait_for_function("scrollY <= 2")
                     page.locator("#menu-toggle").click()
                     assert page.locator(".shell").evaluate(
                         "el => el.classList.contains('menu-open')"

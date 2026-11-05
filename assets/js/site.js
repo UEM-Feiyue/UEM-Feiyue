@@ -297,7 +297,18 @@
     const url = new URL(link.href);
     if (url.origin !== location.origin || indexPath(url.pathname) !== indexPath(location.pathname) || url.hash) return;
     event.preventDefault();
-    if (url.href === location.href) return;
+    if (url.href === location.href) {
+      // Like the personal homepage: clicking the brand on the current home
+      // document returns to the top instead of silently swallowing the click.
+      if (link.matches('.brand, .mobile-brand')) {
+        setMenu(false);
+        window.scrollTo({
+          top: 0,
+          behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'
+        });
+      }
+      return;
+    }
     history.pushState({search: '', year: 'all'}, '', url);
     const update = () => {
       renderView();
