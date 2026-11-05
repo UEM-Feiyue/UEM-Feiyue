@@ -111,10 +111,12 @@ class SubmissionBuildTests(unittest.TestCase):
         meta = {"category": "career", "author": "同学", "year": "2026", "destination": "企业"}
         page = build.render(meta, "## 正文", "articles/example.html")
         self.assertIn('../assets/icons/favicon.svg', page)
-        self.assertIn('class="brand-seal" src="../assets/icons/favicon.svg"', page)
-        self.assertEqual(page.count('class="brand-wordmark"'), 2)
+        self.assertIn('class="brand-logo" src="../assets/images/favicon-横版.png"', page)
+        self.assertIn('class="mobile-brand-logo" src="../assets/images/favicon-横版.png"', page)
+        self.assertNotIn('brand-wordmark', page)
+        self.assertNotIn('brand-seal', page)
         stylesheet = (ROOT / "assets/css/site.css").read_text(encoding="utf-8")
-        self.assertIn('background-image:url("../images/favicon-横版.png")', stylesheet)
+        self.assertIn('.footer-logo{display:block;width:52px;height:52px;flex:none;object-fit:contain}', stylesheet)
         self.assertNotIn("mask-image:", stylesheet)
         self.assertNotIn("clip-path:", stylesheet)
 

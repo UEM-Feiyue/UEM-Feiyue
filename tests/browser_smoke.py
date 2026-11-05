@@ -93,11 +93,11 @@ def main():
                     # remains unchanged. The previous same-URL guard swallowed it.
                     brand = ".mobile-brand" if width <= 900 else ".sidebar .brand"
                     assert page.locator(brand).is_visible()
-                    assert page.locator(brand + " .brand-seal").evaluate(
-                        "el => el.naturalWidth > 0 && getComputedStyle(el).maskImage === 'none' && getComputedStyle(el).clipPath === 'none'"
+                    assert page.locator(brand + " img").evaluate(
+                        "el => el.naturalWidth === 1226 && el.naturalHeight === 285 && getComputedStyle(el).maskImage === 'none'"
                     )
-                    assert page.locator(brand + " .brand-wordmark").evaluate(
-                        "el => getComputedStyle(el).backgroundImage.includes('favicon-') && getComputedStyle(el).maskImage === 'none' && getComputedStyle(el).clipPath === 'none'"
+                    assert page.locator(".footer-logo").evaluate(
+                        "el => getComputedStyle(el).backgroundColor === 'rgba(0, 0, 0, 0)' && getComputedStyle(el).paddingTop === '0px'"
                     )
                     page.evaluate("window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'})")
                     page.wait_for_function("scrollY > 100")
