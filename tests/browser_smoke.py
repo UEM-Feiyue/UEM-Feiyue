@@ -40,22 +40,34 @@ def main():
                     page.on("pageerror", lambda error: errors.append(str(error)))
                     page.goto(base + PREFIX + "/", wait_until="networkidle")
                     assert page.locator("h1:visible").count() == 1
-                    # The photo must end near the top; the reading surface stays solid.
+                    # A bounded image banner retains aspect ratio at desktop/mobile sizes.
                     background = page.evaluate("""() => {
-                        const canvas = document.querySelector('.page');
-                        const photo = getComputedStyle(canvas, '::before');
+                        const container = document.querySelector('.page');
+                        const banner = document.querySelector('.campus-banner');
+                        const css = getComputedStyle(banner);
+                        const rect = banner.getBoundingClientRect();
+                        const contentRect = document.querySelector('main.content').getBoundingClientRect();
                         return {
                             bodyImage: getComputedStyle(document.body).backgroundImage,
-                            pageColor: getComputedStyle(canvas).backgroundColor,
-                            photoImage: photo.backgroundImage,
-                            photoHeight: parseFloat(photo.height),
-                            pageHeight: canvas.getBoundingClientRect().height
+                            bannerCount: document.querySelectorAll('.campus-banner').length,
+                            bannerImage: css.backgroundImage,
+                            bannerSize: css.backgroundSize,
+                            bannerHeight: rect.height,
+                            bannerWidth: rect.width,
+                            containerWidth: container.getBoundingClientRect().width,
+                            contentTop: contentRect.top,
+                            bannerBottom: rect.bottom,
+                            contentBackground: getComputedStyle(document.querySelector('main.content')).backgroundColor
                         };
                     }""")
                     assert background["bodyImage"] == "none"
-                    assert "anguo-garden.jpg" in background["photoImage"]
-                    assert 0 < background["photoHeight"] <= 540
-                    assert background["pageColor"] != "rgba(0, 0, 0, 0)"
+                    assert background["bannerCount"] == 1
+                    assert "anguo-garden.jpg" in background["bannerImage"]
+                    assert all(value.strip() == "cover" for value in background["bannerSize"].split(","))
+                    assert 0 < background["bannerHeight"] <= 310
+                    assert abs(background["bannerWidth"] - background["containerWidth"]) <= 1
+                    assert background["contentTop"] >= background["bannerBottom"] - 1
+                    assert background["contentBackground"] != "rgba(0, 0, 0, 0)"
                     assert page.locator("#category-nav [data-category]").count() == 5
                     assert page.locator(".site-footer").count() == 1
                     if width <= 900:
