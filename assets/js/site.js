@@ -59,32 +59,41 @@
 
   const sidebar = document.querySelector('#sidebar');
   const toggle = document.querySelector('#menu-toggle');
+  const shell = document.querySelector('.shell');
   const mobile = matchMedia('(max-width: 900px)');
-  const syncMenu = () => { sidebar.inert = mobile.matches && !sidebar.classList.contains('open'); };
-  const closeMenu = (restoreFocus = false) => {
-    sidebar.classList.remove('open');
-    toggle.setAttribute('aria-expanded', 'false');
-    toggle.setAttribute('aria-label', '打开导航');
-    syncMenu();
-    if (restoreFocus && mobile.matches) toggle.focus();
-  };
-  toggle?.addEventListener('click', () => {
-    const open = sidebar.classList.toggle('open');
+  const isOpen = () => mobile.matches && shell.classList.contains('menu-open');
+  const setMenu = (open, restoreFocus = false) => {
+    open = Boolean(open && mobile.matches);
+    shell.classList.toggle('menu-open', open);
+    sidebar.classList.toggle('open', open);
+    sidebar.inert = mobile.matches && !open;
     toggle.setAttribute('aria-expanded', String(open));
     toggle.setAttribute('aria-label', open ? '关闭导航' : '打开导航');
-    syncMenu();
-  });
+    if (restoreFocus && mobile.matches) toggle.focus();
+  };
+  toggle.addEventListener('click', () => setMenu(!isOpen()));
   document.addEventListener('click', event => {
-    if (sidebar.classList.contains('open') && !sidebar.contains(event.target) && !toggle.contains(event.target)) closeMenu();
+    if (isOpen() && !sidebar.contains(event.target) && !toggle.contains(event.target)) setMenu(false);
   });
-  sidebar?.addEventListener('click', event => {
-    if (event.target.closest('a')) closeMenu();
+  // Same-document category changes dismiss the panel before the content updates.
+  // Cross-document links keep the outgoing panel stable until the new page loads,
+  // avoiding a flash of the old page during navigation.
+  sidebar.addEventListener('click', event => {
+    const link = event.target.closest('a[href]');
+    if (!link || !mobile.matches) return;
+    const destination = new URL(link.href);
+    const sameDocument = destination.origin === location.origin &&
+      destination.pathname.replace(/index\\.html$/, '') === location.pathname.replace(/index\\.html$/, '');
+    if (sameDocument) setMenu(false);
   });
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && sidebar.classList.contains('open')) closeMenu(true);
+    if (event.key === 'Escape' && isOpen()) setMenu(false, true);
   });
-  mobile.addEventListener('change', () => closeMenu());
-  syncMenu();
+  mobile.addEventListener('change', () => setMenu(false));
+  window.addEventListener('pageshow', event => {
+    if (event.persisted) setMenu(false);
+  });
+  setMenu(false);
 
   const archive = document.querySelector('#archive-section');
   if (!archive) return;

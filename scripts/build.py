@@ -76,14 +76,14 @@ def shared_chrome(source, page, prefix="./", category=None):
         links.append(f'<a href="{prefix}?category={quote(item["id"])}" data-category="{html.escape(item["id"], quote=True)}" data-category-label="{html.escape(item["label"], quote=True)}" data-category-description="{html.escape(item["description"], quote=True)}"{selected}>{html.escape(item["label"])}</a>')
     links.append(f'<a href="{prefix}submit.html" class="nav-contribute"' + (' aria-current="page"' if page == "submit" else '') + '>投稿分享 <span class="link-arrow" aria-hidden="true"></span></a>')
     sidebar = re.sub(r'(<nav class="nav"[^>]*>).*?(</nav>)', lambda m: m[1] + ''.join(links) + m[2], sidebar, flags=re.S)
-    header = re.search(r'<header class="topbar">.*?</header>', home, re.S)[0]
+    header = re.search(r'<header class="topbar"[^>]*>.*?</header>', home, re.S)[0]
     footer = re.search(r'<footer class="site-footer".*?</footer>', home, re.S)[0]
     footer_links = f'<a href="{prefix}?view=all">全部经历</a>' + ''.join(
         f'<a href="{prefix}?category={quote(item["id"])}">{html.escape(item["label"])}</a>' for item in SCHEMA["categories"])
     footer_links += f'<a href="{prefix}submit.html">投稿分享</a>'
     footer = re.sub(r'(<nav class="footer-links"[^>]*>).*?(</nav>)', lambda m: m[1] + footer_links + m[2], footer, flags=re.S)
     for pattern, fragment in ((r'<aside class="sidebar".*?</aside>', sidebar),
-                              (r'<header class="topbar">.*?</header>', header),
+                              (r'<header class="topbar"[^>]*>.*?</header>', header),
                               (r'<footer class="site-footer".*?</footer>', footer)):
         source = re.sub(pattern, lambda _: fragment, source, count=1, flags=re.S)
     source = re.sub(r'((?:src|href)=")(?:(?:\./)?assets/)', lambda m: m[1] + prefix + 'assets/', source)

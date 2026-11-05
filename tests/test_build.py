@@ -22,7 +22,10 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertIn("background-size:cover", stylesheet)
         self.assertIn("height:clamp(270px,30vw,440px)", stylesheet)
         self.assertIn("height:clamp(220px,60vw,320px)", stylesheet)
-        self.assertIn("@view-transition{navigation:auto}", stylesheet)
+        self.assertNotIn("@view-transition{navigation:auto}", stylesheet)
+        self.assertIn("position:sticky;top:0;z-index:50", stylesheet)
+        self.assertIn("--mobile-header-height:72px", stylesheet)
+        self.assertIn(".shell.menu-open::before", stylesheet)
         self.assertIn("body{background:var(--bg)}", stylesheet)
         self.assertNotIn("background-attachment:fixed", stylesheet)
         self.assertNotIn(".page::before{", stylesheet)
@@ -37,6 +40,16 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertNotIn("hero-visual", homepage)
         self.assertNotIn("hero-corner", homepage)
         self.assertIn('theme-init.js', build.render({"category": "career", "author": "同学", "year": "2026", "destination": "企业"}, "## 正文", "articles/test.html"))
+
+    def test_mobile_chrome_is_shared_across_routes(self):
+        homepage = (ROOT / "index.html").read_text(encoding="utf-8")
+        submission = (ROOT / "submit.html").read_text(encoding="utf-8")
+        article = build.render({"category": "career", "author": "同学", "year": "2026",
+                                "destination": "企业"}, "## 正文", "articles/test.html")
+        for source in (homepage, submission, article):
+            self.assertIn('class="topbar" aria-label="移动端导航栏"', source)
+            self.assertIn('class="menu-lines"', source)
+            self.assertIn('aria-controls="sidebar"', source)
 
     def test_pagefind_indexing_and_sidebar_chrome(self):
         homepage = (ROOT / "index.html").read_text(encoding="utf-8")

@@ -62,7 +62,21 @@ def main():
                     }""")
                     assert background["bodyImage"] == "none"
                     assert background["bannerCount"] == 1
-                    assert page.locator(".campus-banner").evaluate("el => Math.abs(el.getBoundingClientRect().top) < 1")
+                    # The mobile header is a real, stable row above the banner.
+                    if width <= 900:
+                        layout = page.evaluate("""() => {
+                            const header = document.querySelector('.topbar');
+                            const banner = document.querySelector('.campus-banner');
+                            const head = header.getBoundingClientRect();
+                            const image = banner.getBoundingClientRect();
+                            return {height:head.height, top:head.top, bottom:head.bottom,
+                                    imageTop:image.top, surface:getComputedStyle(header).backgroundColor};
+                        }""")
+                        assert layout["height"] == 72
+                        assert abs(layout["imageTop"] - layout["bottom"]) <= 1
+                        assert layout["surface"] != "rgba(0, 0, 0, 0)"
+                    else:
+                        assert page.locator(".campus-banner").evaluate("el => Math.abs(el.getBoundingClientRect().top) < 1")
                     assert page.locator("#theme-toggle").count() == 1
                     if width <= 900:
                         assert page.locator(".topbar").is_visible()
@@ -95,6 +109,10 @@ def main():
                         assert page.locator("#sidebar").evaluate("el => el.inert")
                         page.locator("#menu-toggle").click()
                         assert page.locator("#menu-toggle").get_attribute("aria-expanded") == "true"
+                        assert page.locator(".shell").evaluate("el => el.classList.contains('menu-open')")
+                        assert page.locator("#sidebar").evaluate("el => getComputedStyle(el).position === 'fixed'")
+                        assert page.locator("#sidebar").evaluate("el => el.getBoundingClientRect().top >= document.querySelector('.topbar').getBoundingClientRect().bottom")
+                        assert page.locator("#menu-toggle").evaluate("el => getComputedStyle(el).position !== 'absolute'")
                         assert not page.locator("#sidebar").evaluate("el => el.inert")
                         assert page.locator("#theme-toggle").is_visible()
                         original_theme = page.evaluate("document.documentElement.dataset.theme")
@@ -108,6 +126,7 @@ def main():
                         assert page.evaluate("document.documentElement.dataset.theme") == original_theme
                         page.keyboard.press("Escape")
                         assert page.locator("#menu-toggle").get_attribute("aria-expanded") == "false"
+                        assert not page.locator(".shell").evaluate("el => el.classList.contains('menu-open')")
                         assert page.locator("#menu-toggle").evaluate("el => el === document.activeElement")
                         page.keyboard.press("Tab")
                         assert not page.locator("#sidebar").evaluate("el => el.contains(document.activeElement)")
@@ -161,6 +180,19 @@ def main():
                     page.go_back(wait_until="networkidle")
                     assert page.locator("#search").is_visible()
                     assert page.locator("#search").input_value() == articles[0]["author"]
+                    if width == 390 and theme == "light":
+                        # Cross-document navigation should never expose the old page with
+                        # a dismissed menu (the old root snapshot flash).
+                        page.locator("#menu-toggle").click()
+                        assert page.locator("#menu-toggle").get_attribute("aria-expanded") == "true"
+                        page.locator("#category-nav a.nav-contribute").click()
+                        page.wait_for_url("**/submit.html")
+                        assert page.locator(".topbar").is_visible()
+                        assert page.locator(".campus-banner").is_visible()
+                        assert page.locator("#menu-toggle").get_attribute("aria-expanded") == "false"
+                        assert page.locator("#sidebar").evaluate("el => el.inert")
+                        page.go_back(wait_until="networkidle")
+                        assert page.locator("#search").is_visible()
                     # Closed-mode regression without contacting live Turnstile or Worker.
                     page.route("**/assets/js/submission-config.js*", lambda route: route.fulfill(
                         content_type="application/javascript",
