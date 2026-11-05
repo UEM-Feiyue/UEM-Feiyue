@@ -36,11 +36,11 @@
       "type": "text",
       "required": true,
       "maxLength": 4,
-      "placeholder": "例如 2026",
+      "placeholder": "2026",
       "inputMode": "numeric",
       "pattern": "[0-9]{4}",
       "suffix": "届",
-      "hint": "仅填写四位毕业年份。"
+      "hint": "填写四位本科毕业年份，例如 2026 届。"
     },
     {
       "name": "destination",
@@ -74,7 +74,7 @@
       "type": "textarea",
       "required": true,
       "placeholder": "写下准备过程、关键节点、经验教训，以及想对学弟学妹说的话",
-      "hint": "支持直接粘贴 Markdown；可载入示例并切换预览。",
+      "hint": "直接写普通文字也可以；如需分章节或列出步骤，可点击「载入示例」学习 Markdown 语法。",
       "maxLength": 8000
     },
     {
@@ -82,8 +82,8 @@
       "label": "联系方式",
       "type": "textarea",
       "required": false,
-      "placeholder": "选填公开邮箱或社交账号",
-      "hint": "仅填写愿意公开的信息；正式发布时可能公开展示。",
+      "placeholder": "例如：邮箱 hello@example.com\n微信：example_id\nGitHub：github.com/yourname",
+      "hint": "可以留下邮箱、微信号、QQ 或 GitHub 等联系渠道，只填写愿意向所有访客公开的信息；不必填写真实手机号。",
       "maxLength": 500
     }
   ]

@@ -123,6 +123,22 @@ def main():
                     assert page.locator(".article-item:visible").count() == len(articles)
                     assert page.locator("#year-filter").evaluate("el => getComputedStyle(el).appearance") == "none"
                     assert page.locator(".year-select svg").is_visible()
+                    assert page.locator("#year-trigger").is_visible()
+                    assert page.locator("#year-trigger").evaluate("el => el.getBoundingClientRect().width < 160")
+                    page.locator("#year-trigger").click()
+                    assert page.locator("#year-options").evaluate("el => el.matches(':popover-open')")
+                    assert page.locator("#year-options .year-option").count() >= 2
+                    page.locator("#year-options [data-value='2026']").click()
+                    assert page.locator("#year-filter").input_value() == "2026"
+                    assert page.locator("#year-label").inner_text() == "2026"
+                    page.locator("#year-trigger").focus()
+                    page.keyboard.press("ArrowDown")
+                    assert page.locator("#year-options").evaluate("el => el.matches(':popover-open')")
+                    page.keyboard.press("Escape")
+                    assert not page.locator("#year-options").evaluate("el => el.matches(':popover-open')")
+                    page.locator("#year-trigger").click()
+                    page.locator("#year-options [data-value='all']").click()
+                    assert page.locator("#year-filter").input_value() == "all"
                     page.locator("#search").fill("no-matching-story-987654321")
                     page.wait_for_function("document.querySelector('#search-status').textContent.includes('没有找到匹配内容')")
                     assert page.locator(".empty-state").is_visible()
@@ -157,6 +173,20 @@ def main():
                     assert not page.locator("#year").evaluate("el => el.checkValidity()")
                     page.locator("#year").fill("2026")
                     page.locator("#destination").fill("Example institution")
+                    assert page.locator("#year").evaluate("el => el.getBoundingClientRect().width < 120")
+                    assert "hello@example.com" in page.locator("#contact").get_attribute("placeholder")
+                    assert page.locator("#body").evaluate("el => el.getBoundingClientRect().height >= 240")
+                    page.locator("#body").fill(("## 复盘\\n\\n" + "过程很重要，经验可以复用。\\n") * 25)
+                    assert page.locator("#body").evaluate("el => el.scrollHeight <= el.clientHeight + 3")
+                    page.locator("#body").fill("")
+                    page.locator(".demo-actions button").filter(has_text="载入示例").click()
+                    page.wait_for_function("document.querySelector('#body').value.startsWith('## ')")
+                    assert page.locator(".markdown-help").get_attribute("open") is not None
+                    assert page.locator(".markdown-preview").is_hidden()
+                    assert page.locator("#body").is_visible()
+                    assert "Markdown" in page.locator(".markdown-help").inner_text()
+                    assert "## 小标题" in page.locator(".markdown-help").inner_text()
+                    page.locator("#body").fill("")
                     page.locator("#body").fill("## Heading\n\n**Test body**\n\n<script>window.__unsafe = true</script>")
                     page.locator("#contact").fill("do-not-save@example.invalid")
                     page.locator("#preview-button").click()
@@ -174,6 +204,7 @@ def main():
                     page.wait_for_selector("#body")
                     assert page.locator("#author").input_value() == "Browser test"
                     assert page.locator("#contact").input_value() == ""
+                    assert page.locator("#body").evaluate("el => el.scrollHeight <= el.clientHeight + 3")
                     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 2")
                     assert errors == [], errors
                     context.close()
@@ -270,7 +301,8 @@ def main():
             assert page.locator(".article-item:visible").count() == 1
             assert "陈同学" in page.locator(".article-item:visible").inner_text()
             assert "推荐信" in page.locator(".article-item:visible .article-excerpt").inner_text()
-            page.locator("#year-filter").select_option("2026")
+            page.locator("#year-trigger").click()
+            page.locator("#year-options [data-value='2026']").click()
             assert page.locator(".article-item:visible").count() == 1
             page.locator("#search").fill("")
             assert page.locator(".article-item:visible").count() == len(articles)

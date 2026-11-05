@@ -39,7 +39,7 @@
       if (field.placeholder) control.placeholder = field.placeholder;
       if (field.inputMode) control.inputMode = field.inputMode;
       if (field.pattern) control.pattern = field.pattern;
-      if (field.type === 'textarea') control.rows = 2;
+      if (field.type === 'textarea') control.rows = field.name === 'body' ? 9 : 3;
       wrapper.append(label);
       if (field.suffix) {
         const inputRow = make('div');
@@ -122,10 +122,10 @@
           const showing = bodyPreview.hidden;
           if (showing) renderMarkdown(control.value, bodyPreview);
           bodyPreview.hidden = !showing;
-          control.closest('.textarea-holder').hidden = showing;
+          control.hidden = showing;
           bodyPreviewButton.textContent = showing ? '返回编辑' : '预览排版';
           bodyPreviewButton.setAttribute('aria-pressed', String(showing));
-          if (!showing) control.focus();
+          if (!showing) { control.dispatchEvent(new Event('input', {bubbles:true})); control.focus(); }
         });
         toolbar.append(bodyPreviewButton);
         wrapper.insertBefore(toolbar, control);
@@ -145,8 +145,12 @@
             if (!response.ok) throw new Error('Demo unavailable');
             control.value = await response.text();
             control.dispatchEvent(new Event('input', { bubbles: true }));
-            if (bodyPreview.hidden) bodyPreviewButton.click();
-            else renderMarkdown(control.value, bodyPreview);
+            // The example is intentionally raw Markdown so beginners can inspect
+            // syntax before switching to the rendered preview themselves.
+            if (!bodyPreview.hidden) bodyPreviewButton.click();
+            guide.open = true;
+            control.focus();
+            draftStatus.textContent = '已载入带有 Markdown 格式的示例；可查看下方语法说明，再自行点击「预览排版」。';
           } catch { draftStatus.textContent = '示例加载失败，请稍后重试。'; }
         });
         clearBody.addEventListener('click', () => {
@@ -158,6 +162,28 @@
         });
         demoActions.append(loadDemo, clearBody);
         wrapper.insertBefore(demoActions, toolbar);
+        // No duplicate Markdown engine or external editor dependency.
+        const guide = make('details');
+        guide.className = 'markdown-help';
+        guide.append(make('summary', '第一次写 Markdown？查看排版语法'));
+        const explanation = make('div');
+        explanation.className = 'markdown-help-content';
+        const examples = [
+          ['## 小标题', '使用 ## 开始一个章节'],
+          ['### 子标题', '使用 ### 细分章节'],
+          ['**重点文字**', '用两个星号突出重要内容'],
+          ['- 一条经验', '用 - 整理无序清单'],
+          ['1. 第一步', '用数字和句点表示步骤'],
+          ['> 提醒', '用 > 写出引用或提示']
+        ];
+        for (const [syntax, meaning] of examples) {
+          const item = make('div');
+          item.append(make('code', syntax), make('span', meaning));
+          explanation.append(item);
+        }
+        explanation.append(make('p', '以上符号只有在「编辑」时可见；点击右上角「预览排版」就能看到最终文章的效果。也可以完全不使用 Markdown，直接写普通文字。'));
+        guide.append(explanation);
+        wrapper.insertBefore(guide, toolbar);
         const guidance = make('small', '可直接粘贴 Markdown；也可以载入示例学习写作，再一键清空。');
         guidance.className = 'field-hint';
         wrapper.append(guidance);
@@ -165,57 +191,19 @@
       fields.append(wrapper);
       controls.set(field.name, control);
     }
-    // Touch browsers do not expose the native textarea resize grip.
-    // Size each field to its wrapped placeholder, leaving room for the drag handle.
-    // Never allow the handle to cover the placeholder when dragged upward.
+    // Prefer CSS field-sizing: content; fallback to scrollHeight for WebKit
+    // and older browsers, without a second draggable overlay on textareas.
     for (const control of controls.values()) {
       if (control.tagName !== 'TEXTAREA') continue;
-      const grip = make('button', '↘');
-      grip.type = 'button';
-      grip.className = 'textarea-grip';
-      grip.setAttribute('aria-label', '拖动调整输入框高度');
-      const holder = make('div');
-      holder.className = 'textarea-holder';
-      control.replaceWith(holder);
-      holder.append(control, grip);
-      let minimum = 0;
-      let manuallyResized = false;
-      const measure = () => {
-        const probe = control.cloneNode();
-        probe.value = '';
-        probe.rows = 1;
-        probe.style.height = 'auto';
-        probe.style.minHeight = '0';
-        probe.style.position = 'absolute';
-        probe.style.visibility = 'hidden';
-        probe.style.pointerEvents = 'none';
-        probe.style.resize = 'none';
-        holder.append(probe);
-        // scrollHeight accounts for wrapped placeholder text and textarea padding.
-        minimum = Math.ceil(probe.scrollHeight + 14);
-        probe.remove();
-        control.style.minHeight = minimum + 'px';
-        if (!manuallyResized) control.style.height = minimum + 'px';
-        else if (control.getBoundingClientRect().height < minimum) control.style.height = minimum + 'px';
+      if (CSS.supports('field-sizing', 'content')) continue;
+      const grow = () => {
+        if (control.hidden) return;
+        control.style.height = 'auto';
+        control.style.height = Math.max(control.id === 'body' ? 240 : 96, control.scrollHeight) + 'px';
       };
-      measure();
-      window.addEventListener('resize', measure);
-      let startY = 0, startHeight = 0;
-      grip.addEventListener('pointerdown', event => {
-        if (event.button !== 0) return;
-        startY = event.clientY;
-        startHeight = control.getBoundingClientRect().height;
-        grip.setPointerCapture(event.pointerId);
-        event.preventDefault();
-      });
-      grip.addEventListener('pointermove', event => {
-        if (!grip.hasPointerCapture(event.pointerId)) return;
-        manuallyResized = true;
-        control.style.height = Math.max(minimum, startHeight + event.clientY - startY) + 'px';
-      });
-      for (const name of ['pointerup', 'pointercancel']) grip.addEventListener(name, event => {
-        if (grip.hasPointerCapture(event.pointerId)) grip.releasePointerCapture(event.pointerId);
-      });
+      control.addEventListener('input', grow);
+      window.addEventListener('resize', grow, {passive:true});
+      requestAnimationFrame(grow);
     }
     const year = controls.get('year');
     year.addEventListener('input', () => {

@@ -53,6 +53,27 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertNotIn('data-search=', homepage)
         self.assertIn('id="search-status"', homepage)
 
+    def test_year_menu_and_editor_contract(self):
+        homepage = (ROOT / "index.html").read_text(encoding="utf-8")
+        submission = (ROOT / "submit.html").read_text(encoding="utf-8")
+        source = (ROOT / "assets/js/submit.js").read_text(encoding="utf-8")
+        site = (ROOT / "assets/js/site.js").read_text(encoding="utf-8")
+        css = (ROOT / "assets/css/site.css").read_text(encoding="utf-8")
+        schema = json.loads((ROOT / "data/schema.json").read_text(encoding="utf-8"))
+        self.assertIn('id="year-options" class="year-options" popover', homepage)
+        self.assertIn("yearMenu.showPopover()", site)
+        self.assertIn("yearMenu.hidePopover()", site)
+        self.assertIn("field-sizing:content", css)
+        self.assertNotIn("textarea-grip", css + source)
+        self.assertIn("markdown-help-content", source)
+        self.assertIn("guide.open = true", source)
+        self.assertIn("control.hidden = showing", source)
+        self.assertIn("textarea", source)
+        self.assertIn('id="preview-text"', submission)
+        fields = {entry["name"]: entry for entry in schema["fields"]}
+        self.assertIn("hello@example.com", fields["contact"]["placeholder"])
+        self.assertEqual(fields["year"]["pattern"], "[0-9]{4}")
+
     def test_shared_theme_toc_and_form_layout(self):
         stylesheet = (ROOT / "assets/css/site.css").read_text(encoding="utf-8")
         homepage = (ROOT / "index.html").read_text(encoding="utf-8")
