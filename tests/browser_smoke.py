@@ -76,6 +76,11 @@ def main():
                     page.go_back(wait_until="networkidle")
                     assert page.locator("#search").is_visible()
                     assert page.locator("#search").input_value() == articles[0]["author"]
+                    # Closed-mode regression without contacting live Turnstile or Worker.
+                    page.route("**/assets/js/submission-config.js*", lambda route: route.fulfill(
+                        content_type="application/javascript",
+                        body="window.UEM_SUBMISSION_CONFIG={enabled:false};"
+                    ))
                     page.goto(base + PREFIX + "/submit.html", wait_until="networkidle")
                     page.wait_for_selector("#body")
                     page.locator("#author").fill("Browser test")
@@ -163,6 +168,8 @@ def main():
             page.wait_for_function("!document.querySelector('#submit-button').disabled", timeout=10000)
             page.locator("#submit-button").click()
             page.get_by_text("查看投稿记录").wait_for()
+            assert page.locator("#submission-status").get_attribute("data-state") == "success"
+            assert page.locator("#submit-button").inner_text() == "投稿分享"
             assert len(submissions) == 1
             assert submissions[0]["category"] == "career"
             assert submissions[0]["turnstileToken"] == "test-token"

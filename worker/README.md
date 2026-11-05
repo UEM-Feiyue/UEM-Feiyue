@@ -44,8 +44,9 @@ provided contact information. The Issue body includes an auditable
 Never publish directly from this untrusted Worker.
 
 The submission UI has a public configuration in `assets/js/submission-config.js`,
-including the public Site Key and Worker endpoint. Its `enabled` switch defaults
-`false`; enable only after testing the live Worker and publication flow.
+including the public Site Key and Worker endpoint. Its public `enabled` switch is `true` on the published site; production availability
+still depends on Cloudflare `SUBMISSION_MODE=public` and `SUBMISSIONS_DISABLED=false`.
+Do not treat the public browser switch as a security boundary.
 The trusted GitHub Actions importer in `scripts/import_completed_submission.py`
 creates `content/community/issue-<number>.md` only for UEM submission Issues
 closed **as completed by FuTseYi**. Ordinary closures, PRs, invalid markers,

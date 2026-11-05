@@ -321,7 +321,10 @@
       /^https:\/\//.test(config.apiEndpoint || '') && Boolean(config.turnstileSiteKey);
     let widgetId = null;
     let submitting = false;
-    const say = message => { submitStatus.textContent = message; };
+    const say = (message, state = 'info') => {
+      submitStatus.textContent = message;
+      submitStatus.dataset.state = state;
+    };
     if (enabled) {
       captchaHost.hidden = false;
       say('请先完成人机验证，再确认公开投稿。');
@@ -333,26 +336,27 @@
           widgetId = window.turnstile.render(captchaHost, {
             sitekey: config.turnstileSiteKey,
             action: 'uem_feiyue_submit',
-            callback: () => { if (!submitting) submitButton.disabled = false; },
-            'expired-callback': () => { submitButton.disabled = true; say('验证已过期，请重新验证。'); },
-            'error-callback': () => { submitButton.disabled = true; say('人机验证暂不可用，请刷新重试。'); }
+            callback: () => { if (!submitting) { submitButton.disabled = false; say('验证完成，可以投稿。', 'success'); } },
+            'expired-callback': () => { submitButton.disabled = true; say('验证已过期，请重新验证。', 'error'); },
+            'error-callback': () => { submitButton.disabled = true; say('人机验证暂不可用，请刷新重试。', 'error'); }
           });
-        } catch { say('无法加载人机验证，请刷新重试。'); }
+        } catch { say('无法加载人机验证，请刷新重试。', 'error'); }
       };
-      captchaScript.onerror = () => say('无法加载人机验证，请稍后重试。');
+      captchaScript.onerror = () => say('无法加载人机验证，请稍后重试。', 'error');
       document.head.append(captchaScript);
       submitButton.addEventListener('click', async () => {
         if (submitting || !form.reportValidity()) return;
         const token = widgetId === null ? '' : window.turnstile?.getResponse(widgetId);
-        if (!token) { say('请先完成人机验证。'); return; }
+        if (!token) { say('请先完成人机验证。', 'error'); return; }
         const values = Object.fromEntries(new FormData(form));
         const payload = { version: 1, ...values, turnstileToken: token };
         if (new TextEncoder().encode(JSON.stringify(payload)).length > 65536) {
-          say('内容过长，请精简后重试。');
+          say('内容过长，请精简后重试。', 'error');
           return;
         }
         submitting = true;
         submitButton.disabled = true;
+        submitButton.textContent = '正在提交…';
         say('正在提交，请勿重复点击。');
         try {
           const response = await fetch(config.apiEndpoint, {
@@ -363,20 +367,24 @@
           if (!response.ok || !result.ok || !/^https:\/\/github\.com\/UEM-Feiyue\/UEM-Feiyue\.github\.io\/issues\/\d+$/.test(result.issueUrl || ''))
             throw new Error(result.message || '投稿未成功，请稍后再试。');
           form.reset();
-          submitStatus.replaceChildren(make('span', '投稿已保存为公开 Issue，等待审核：'));
+          submitStatus.dataset.state = 'success';
+          submitStatus.replaceChildren(make('span', '已提交到 GitHub，审核通过后才会发布。 '));
           const link = make('a', '查看投稿记录');
           link.href = result.issueUrl;
           link.target = '_blank';
           link.rel = 'noopener noreferrer';
           submitStatus.append(link);
         } catch (error) {
-          say(error.message || '网络异常，投稿未确认保存。请检查 Issue 列表后再试。');
+          say(error.message || '网络异常，投稿未确认保存。请检查 Issue 列表后再试。', 'error');
         } finally {
           submitting = false;
+          submitButton.textContent = '投稿分享';
           window.turnstile?.reset(widgetId);
           submitButton.disabled = true;
         }
       });
+    } else {
+      say('投稿服务暂未开放，可先预览并保存草稿。');
     }
 
   }).catch(() => {
