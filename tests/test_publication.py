@@ -25,6 +25,13 @@ def fixture():
 
 
 class PublicationTests(unittest.TestCase):
+    def test_reviewed_commit_triggers_pages_deployment(self):
+        workflow = (ROOT / '.github/workflows/publish-completed-submission.yml').read_text(encoding='utf-8')
+        self.assertIn('actions: write', workflow)
+        self.assertIn("echo 'changed=true' >> \"$GITHUB_OUTPUT\"", workflow)
+        self.assertIn("steps.publish.outputs.changed == 'true'", workflow)
+        self.assertIn('gh workflow run pages.yml --ref main', workflow)
+
     def test_import_idempotent_and_safe(self):
         event = fixture()
         with tempfile.TemporaryDirectory() as directory:

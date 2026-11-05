@@ -68,7 +68,7 @@ def main():
                     assert page.locator(".article-item:visible").count() > 0
                     page.locator(".article-item:visible h3 a").first.click()
                     page.wait_for_selector(".article-body")
-                    assert page.locator(".demo-badge").is_visible()
+                    assert page.locator(".demo-badge").is_visible() == articles[0]["demo"]
                     assert page.locator(".article-toc").count() <= 1
                     assert page.locator("#category-nav [aria-current='page']").count() == 1
                     assert page.locator(".site-footer").count() == 1

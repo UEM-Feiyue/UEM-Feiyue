@@ -12,6 +12,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  actions: write
   contents: write
   issues: write
 
@@ -61,10 +62,16 @@ jobs:
             python -m unittest discover -s tests -t . -p 'test_*.py'
             python preview.py --build-only
             git commit -m "docs: publish reviewed UEM submission #${ISSUE_NUMBER}"
-            if git push origin HEAD:main; then exit 0; fi
+            if git push origin HEAD:main; then
+              echo 'changed=true' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
             echo "main changed; retrying (${attempt}/3)"
           done
           exit 1
+      - name: Deploy published article
+        if: ${{ steps.publish.outputs.changed == 'true' }}
+        run: gh workflow run pages.yml --ref main
       - name: Synchronize issue status
         if: ${{ success() && github.event_name == 'issues' }}
         env:
