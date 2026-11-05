@@ -60,42 +60,39 @@ a:is(:hover,:focus-visible) .link-arrow{transform:translateX(3px) rotate(45deg)}
 @media(max-width:580px){.mobile-brand-logo{width:128px}}
 
 
-/* A single photographic canvas shared by every route, without a page-sized panel. */
+/* Campus photo belongs to the page introduction, never the reading surface.
+   One top-only layer fades into the theme background across all routes. */
 :root{
-  --photo-overlay:linear-gradient(110deg,rgba(246,250,255,.65),rgba(246,250,255,.36) 56%,rgba(246,250,255,.20));
+  --photo-overlay:linear-gradient(110deg,rgba(246,250,255,.72),rgba(246,250,255,.52) 56%,rgba(246,250,255,.40));
   --photo-line:rgba(23,67,119,.21);
   --photo-copy:#183253;
   --photo-secondary:#385573;
-  --footer-surface:rgba(232,241,252,.91);
-  --footer-copy:#183253;
-  --footer-muted:#49627f;
+  --footer-surface:var(--surface);
+  --footer-copy:var(--text);
+  --footer-muted:var(--muted);
 }
 [data-theme=dark]{
-  --photo-overlay:linear-gradient(108deg,rgba(3,14,34,.80),rgba(6,26,57,.71) 54%,rgba(9,35,74,.54));
+  --photo-overlay:linear-gradient(108deg,rgba(3,14,34,.85),rgba(6,26,57,.78) 54%,rgba(9,35,74,.67));
   --photo-line:rgba(174,206,255,.21);
   --photo-copy:#f1f6ff;
   --photo-secondary:#c2d6ee;
-  --footer-surface:rgba(3,15,35,.91);
-  --footer-copy:#eef5ff;
-  --footer-muted:#bdcce2;
 }
-/* The image is painted once for the whole document, rather than separately
-   on the hero, archive, submission and footer. It is never blurred. */
-body{
-  background-color:var(--bg);
-  background-image:var(--photo-overlay),url("../images/anguo-garden.jpg");
-  background-repeat:no-repeat;
-  background-position:center center;
-  background-size:cover;
-  background-attachment:fixed;
+body{background:var(--bg)}
+.page{position:relative;isolation:isolate;display:flex;flex-direction:column;min-height:100vh;background:var(--bg);color:var(--text)}
+.page::before{
+  content:"";position:absolute;inset:0 0 auto;height:clamp(300px,48svh,540px);
+  background-image:linear-gradient(to bottom,transparent 0%,transparent 38%,var(--bg) 100%),
+    var(--photo-overlay),url("../images/anguo-garden.jpg");
+  background-repeat:no-repeat;background-position:center top;background-size:cover;
+  pointer-events:none;z-index:0;
 }
-.page{display:flex;flex-direction:column;min-height:100vh;background:transparent;color:var(--photo-copy)}
+.page>.topbar,.page>.content,.page>.site-footer{position:relative;z-index:1}
 .page .content{flex:1;width:100%;background:transparent}
-.page .topbar{height:60px;border:0;background:transparent}
-.page .icon-button{color:var(--photo-copy)}
-.page .lead,.page .article-byline,.page .article-meta,.page .article-excerpt,.page .field-hint{color:var(--photo-secondary)}
-.page .content .section{border-color:var(--photo-line)}
-.page .archive-intro,.page .submit-intro,.page .article-page{color:var(--photo-copy)}
+.page .topbar{height:60px;border:0;background:transparent;z-index:30}
+.page .icon-button{color:var(--text)}
+.page .lead,.page .article-byline,.page .article-meta,.page .article-excerpt,.page .field-hint{color:var(--muted)}
+.page .content .section{border-color:var(--line)}
+.page .archive-intro,.page .submit-intro,.page .article-page{color:var(--text)}
 .page.is-home .content{max-width:none;padding:0 clamp(30px,5vw,96px)}
 .page.is-home .home-intro{display:flex;flex-direction:column;justify-content:center;max-width:none;min-height:calc(100svh - 60px);padding:clamp(56px,8vh,100px) 0}
 .page.is-home .hero-copy{max-width:650px}
@@ -131,7 +128,7 @@ body{
 .footer-links a{font-size:14px;color:var(--footer-copy)}
 .footer-links a:hover,.footer-links a:focus-visible,.footer-bottom a:hover{color:var(--accent)}
 .footer-bottom{display:flex;justify-content:space-between;gap:20px;margin-top:36px;padding-top:18px;border-top:1px solid var(--photo-line);color:var(--footer-muted);font-size:12px}
-@media(max-width:900px){body{background-attachment:scroll}.page .topbar{height:66px}.page.is-home .hero-copy{max-width:720px}.page.is-home .home-intro{min-height:calc(100svh - 66px);padding:60px 0 70px}}
+@media(max-width:900px){.page .topbar{height:66px}.page.is-home .hero-copy{max-width:720px}.page.is-home .home-intro{min-height:calc(100svh - 66px);padding:60px 0 70px}}
 @media(max-width:580px){
   .page.is-home .content{padding:0 22px}
   .page.is-home .home-intro{min-height:0;padding:66px 0 85px}

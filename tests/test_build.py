@@ -22,7 +22,11 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertIn("@view-transition{navigation:auto}", stylesheet)
         self.assertIn('rel="preload" as="image"', homepage)
         self.assertNotIn(".page.is-home{background-image:", stylesheet)
-        self.assertIn("body{", stylesheet)
+        self.assertIn("body{background:var(--bg)}", stylesheet)
+        self.assertIn(".page::before{", stylesheet)
+        self.assertIn("height:clamp(300px,48svh,540px)", stylesheet)
+        self.assertIn("var(--bg) 100%", stylesheet)
+        self.assertNotIn("background-attachment:fixed", stylesheet)
         self.assertIn("background:var(--footer-surface)", stylesheet)
         for page in (homepage, submission):
             self.assertIn('data-site-footer', page)

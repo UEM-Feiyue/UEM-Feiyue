@@ -40,6 +40,22 @@ def main():
                     page.on("pageerror", lambda error: errors.append(str(error)))
                     page.goto(base + PREFIX + "/", wait_until="networkidle")
                     assert page.locator("h1:visible").count() == 1
+                    # The photo must end near the top; the reading surface stays solid.
+                    background = page.evaluate("""() => {
+                        const canvas = document.querySelector('.page');
+                        const photo = getComputedStyle(canvas, '::before');
+                        return {
+                            bodyImage: getComputedStyle(document.body).backgroundImage,
+                            pageColor: getComputedStyle(canvas).backgroundColor,
+                            photoImage: photo.backgroundImage,
+                            photoHeight: parseFloat(photo.height),
+                            pageHeight: canvas.getBoundingClientRect().height
+                        };
+                    }""")
+                    assert background["bodyImage"] == "none"
+                    assert "anguo-garden.jpg" in background["photoImage"]
+                    assert 0 < background["photoHeight"] <= 540
+                    assert background["pageColor"] != "rgba(0, 0, 0, 0)"
                     assert page.locator("#category-nav [data-category]").count() == 5
                     assert page.locator(".site-footer").count() == 1
                     if width <= 900:
