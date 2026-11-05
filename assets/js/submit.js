@@ -279,6 +279,36 @@
         link.rel = 'noopener noreferrer';
       });
     };
+    // Mirror the published article's heading anchors and H2/H3 contents list.
+    // Both previews render the same .article-body rules as generated articles.
+    const buildArticleToc = body => {
+      const headings = [...body.querySelectorAll('h2, h3')];
+      const used = new Set();
+      for (const heading of headings) {
+        const base = heading.textContent.toLowerCase()
+          .replace(/[^\p{L}\p{N}_\s-]/gu, '').trim().replace(/[-\s]+/g, '-') || 'section';
+                let id = base;
+        for (let i = 1; used.has(id); i++) id = base + '_' + i;
+        heading.id = id;
+        used.add(id);
+      }
+      if (headings.length < 2) return null;
+      const nav = make('nav');
+      nav.className = 'article-toc';
+      nav.setAttribute('aria-label', '文章目录');
+      nav.append(make('strong', '本页目录'));
+      const list = make('ul');
+      for (const heading of headings) {
+        const item = make('li');
+        item.className = 'toc-depth-' + heading.tagName.slice(1);
+        const link = make('a', heading.textContent);
+        link.href = '#' + heading.id;
+        item.append(link);
+        list.append(item);
+      }
+      nav.append(list);
+      return nav;
+    };
     button.addEventListener('click', () => {
       for (const field of schema.fields) {
         const control = controls.get(field.name);
@@ -292,13 +322,18 @@
       const destination = String(data.get('destination') || '').trim();
       const program = String(data.get('program') || '').trim();
       const title = author + ' — ' + destination + (program ? ' · ' + program : '');
-      previewText.replaceChildren(make('h1', title));
-      const byline = make('p', [selected.label, String(data.get('year')) + ' 届'].join(' · '));
+      previewText.replaceChildren();
+      const back = make('span', '返回' + selected.label);
+      back.className = 'article-back';
+      previewText.append(back, make('h1', title));
+      const byline = make('p', [author, String(data.get('year')).trim() + ' 届'].join(' · '));
       byline.className = 'article-byline';
       previewText.append(byline);
       const body = make('div');
       body.className = 'article-body';
       renderMarkdown(String(data.get('body') || ''), body);
+      const toc = buildArticleToc(body);
+      if (toc) previewText.append(toc);
       previewText.append(body);
       const contact = String(data.get('contact') || '').trim();
       if (contact) {

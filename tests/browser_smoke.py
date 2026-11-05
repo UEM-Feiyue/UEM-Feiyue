@@ -168,6 +168,56 @@ def main():
                 if route == "/":
                     assert page.locator(".article-item:visible").count() == len(articles)
             context.close()
+            # A submitted Markdown story should preview as its published counterpart.
+            # Inspect real production-rendered HTML, not an imagined CSS fixture.
+            demo_source = (ROOT / "content/demo/demo-postgraduate.md").read_text(encoding="utf-8")
+            demo_body = demo_source.split('---', 2)[2].strip()
+            context = browser.new_context(reduced_motion="reduce")
+            page = context.new_page()
+            page.goto(base + PREFIX + "/articles/demo-postgraduate.html", wait_until="networkidle")
+            def appearance(selector):
+                return page.locator(selector).first.evaluate("""el => {
+                    const style = getComputedStyle(el);
+                    return {
+                        fontSize: style.fontSize,
+                        lineHeight: style.lineHeight,
+                        color: style.color,
+                        marginTop: style.marginTop,
+                        marginBottom: style.marginBottom
+                    };
+                }""")
+            expected = {
+                "title": page.locator(".article-page > h1").inner_text(),
+                "byline": page.locator(".article-page > .article-byline").inner_text(),
+                "headings": page.locator(".article-body h1, .article-body h2, .article-body h3").all_inner_texts(),
+                "toc": page.locator(".article-toc a").all_inner_texts(),
+                "toc_urls": page.locator(".article-toc a").evaluate_all("items => items.map(item => item.getAttribute(\'href\'))"),
+                "body": appearance(".article-body"),
+                "h2": appearance(".article-body h2"),
+                "title_style": appearance(".article-page > h1"),
+            }
+            page.route("**/assets/js/submission-config.js*", lambda route: route.fulfill(
+                content_type="application/javascript",
+                body="window.UEM_SUBMISSION_CONFIG={enabled:false};"
+            ))
+            page.goto(base + PREFIX + "/submit.html", wait_until="networkidle")
+            page.locator("#category").select_option("kaoyan")
+            page.locator("#author").fill("林同学")
+            page.locator("#year").fill("2026")
+            page.locator("#destination").fill("某理工类高校")
+            page.locator("#program").fill("安全工程相关专业")
+            page.locator("#body").fill(demo_body)
+            page.locator("#preview-button").click()
+            assert page.locator("#preview").is_visible()
+            assert page.locator("#preview-text > h1").inner_text() == expected["title"]
+            assert page.locator("#preview-text > .article-byline").inner_text() == expected["byline"]
+            assert page.locator("#preview-text .article-body h1, #preview-text .article-body h2, #preview-text .article-body h3").all_inner_texts() == expected["headings"]
+            assert page.locator("#preview-text .article-toc a").all_inner_texts() == expected["toc"]
+            assert page.locator("#preview-text .article-toc a").evaluate_all("items => items.map(item => item.getAttribute(\'href\'))") == expected["toc_urls"]
+            assert appearance("#preview-text .article-body") == expected["body"]
+            assert appearance("#preview-text .article-body h2") == expected["h2"]
+            assert appearance("#preview-text > h1") == expected["title_style"]
+            context.close()
             # Mocked public mode: confirm the complete browser payload/feedback
             # without contacting Cloudflare or opening an actual GitHub Issue.
             context = browser.new_context()

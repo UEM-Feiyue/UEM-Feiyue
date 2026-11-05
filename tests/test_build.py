@@ -102,6 +102,29 @@ class SubmissionBuildTests(unittest.TestCase):
                 with self.subTest(category=category, year=year), self.assertRaises(ValueError):
                     build.parse(source)
 
+    def test_editorial_demo_inventory(self):
+        samples = sorted((ROOT / "content/demo").glob("*.md"))
+        if not samples:
+            return  # Removing the demo directory later must stay supported.
+        self.assertEqual(len(samples), 4)
+        categories = []
+        for path in samples:
+            meta, body = build.parse(path)
+            self.assertIs(meta.get("demo"), True)
+            self.assertNotIn("演示声明", body)
+            self.assertGreater(len(body), 600)
+            categories.append(meta["category"])
+            rendered = build.render(meta, body, "articles/" + path.stem + ".html")
+            self.assertEqual(rendered.count('<span class="demo-badge">演示</span>'), 1)
+        self.assertEqual(set(categories), set(build.CATEGORIES))
+
+    def test_preview_reuses_article_styles(self):
+        source = (ROOT / "assets/css/site.css").read_text(encoding="utf-8")
+        form = (ROOT / "submit.html").read_text(encoding="utf-8")
+        self.assertIn('id="preview-text" class="article-page"', form)
+        self.assertNotIn(".preview .article-body{font-size", source)
+        self.assertNotIn(".preview h3{", source)
+
     def test_demo_is_not_represented_as_real_story(self):
         sample = (ROOT / "data/demo-submission.md").read_text(encoding="utf-8")
         self.assertIn("不是真实投稿", sample)
