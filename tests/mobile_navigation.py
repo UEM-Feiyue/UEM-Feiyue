@@ -48,8 +48,11 @@ def main():
                         "el => Math.abs(el.getBoundingClientRect().top - "
                         "document.querySelector('.topbar').getBoundingClientRect().bottom) <= 1"
                     )
-                    assert page.locator(".mobile-brand-logo").evaluate(
-                        "el => getComputedStyle(el).maskImage.includes('radial-gradient')"
+                    assert page.locator(".mobile-brand-logo .brand-seal").evaluate(
+                        "el => el.naturalWidth > 0 && getComputedStyle(el).maskImage === 'none' && getComputedStyle(el).clipPath === 'none'"
+                    )
+                    assert page.locator(".mobile-brand-logo .brand-wordmark").evaluate(
+                        "el => getComputedStyle(el).backgroundImage.includes('favicon-') && getComputedStyle(el).maskImage === 'none' && getComputedStyle(el).clipPath === 'none'"
                     )
                     page.evaluate("window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'})")
                     page.wait_for_function("scrollY > 100")
