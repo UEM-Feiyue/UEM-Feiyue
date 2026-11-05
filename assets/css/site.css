@@ -68,8 +68,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .sidebar {
-  position: sticky;
-  top: 0;
+  position: fixed;
+  inset: 0 auto 0 0;
   width: var(--sidebar);
   height: 100vh;
   flex: none;
@@ -120,6 +120,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .page {
   min-width: 0;
   flex: 1;
+  margin-left: var(--sidebar);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1330,6 +1331,7 @@ proportions; no composition, mask, crop or duplicate seal. */
 
   .page {
   width: 100%;
+  margin-left: 0;
   }
 
   .page .topbar {

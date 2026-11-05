@@ -12,7 +12,7 @@
 10. The emergency-blue palette is a custom interpretation until official UEM visual identity color values are verified.
 
 11. Branding: reuse the original `assets/images/favicon-横版.png` unchanged on desktop and mobile. Never split, mask or clip it. Reuse `assets/icons/favicon.svg` for favicons and the footer without adding a white disc.
-12. Layout: use `assets/images/anguo-garden.jpg` only for the shared top banner, with aspect-preserving `background-size: cover`, never as a fixed full-page background. Keep reading surfaces opaque. Desktop has a sticky left sidebar; mobile has one 72px topbar and a single overlay menu.
+12. Layout: use `assets/images/anguo-garden.jpg` only for the shared top banner, with aspect-preserving `background-size: cover`, never as a fixed full-page background. Keep reading surfaces opaque. Desktop has a viewport-fixed sidebar isolated from document scrolling with a matching page offset; mobile has one 72px topbar and a single overlay menu.
 13. Navigation: one source of menu open/closed state, with a transition-free reset before internal page navigation and on BFCache restoration. Do not add cross-document root transitions, another menu runtime or a framework.
 14. Theme and footer: a single system/light/dark control in the sidebar; initialize the saved theme before CSS paints. The shared footer uses the same design tokens as the site, with no parallel footer palette variables.
 15. Styles: group component rules by responsibility, retain one authoritative declaration per selector per context, and collect responsive styles under the existing breakpoints. Prefer deleting superseded code to appending more overrides. Preserve meaningful browser behavior tests rather than testing source formatting.
