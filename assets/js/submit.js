@@ -323,7 +323,6 @@
     let submitting = false;
     const say = message => { submitStatus.textContent = message; };
     if (enabled) {
-      submitButton.hidden = false;
       captchaHost.hidden = false;
       say('请先完成人机验证，再确认公开投稿。');
       const captchaScript = document.createElement('script');

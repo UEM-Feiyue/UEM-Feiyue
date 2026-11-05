@@ -90,7 +90,9 @@ def main():
                     assert page.locator("#preview .article-body strong").inner_text() == "Test body"
                     assert not page.evaluate("Boolean(window.__unsafe)")
                     assert "公开 GitHub Issue" in page.locator(".notice").inner_text()
-                    assert page.locator("#submit-button").is_hidden()
+                    assert page.locator("#submit-button").is_visible()
+                    assert page.locator("#submit-button").is_disabled()
+                    assert page.locator("#submit-button").inner_text() == "投稿分享"
                     assert "暂未开放" in page.locator("#submission-status").inner_text()
                     page.reload(wait_until="networkidle")
                     page.wait_for_selector("#body")
