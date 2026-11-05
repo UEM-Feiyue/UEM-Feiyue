@@ -57,6 +57,9 @@ def main():
                             containerWidth: container.getBoundingClientRect().width,
                             contentTop: contentRect.top,
                             bannerBottom: rect.bottom,
+                            titleTop: document.querySelector('#hero-title').getBoundingClientRect().top,
+                            titleBottom: document.querySelector('#hero-title').getBoundingClientRect().bottom,
+                            leadTop: document.querySelector('.home-intro .lead').getBoundingClientRect().top,
                             contentBackground: getComputedStyle(document.querySelector('main.content')).backgroundColor
                         };
                     }""")
@@ -88,6 +91,9 @@ def main():
                     assert 220 <= background["bannerHeight"] <= 440
                     assert abs(background["bannerWidth"] - background["containerWidth"]) <= 1
                     assert background["contentTop"] >= background["bannerBottom"] - 1
+                    assert background["titleTop"] < background["bannerBottom"]
+                    assert background["titleBottom"] > background["bannerBottom"] - background["bannerHeight"]
+                    assert background["leadTop"] >= background["bannerBottom"]
                     assert background["contentBackground"] != "rgba(0, 0, 0, 0)"
                     # Logo on the current homepage must scroll even when the URL
                     # remains unchanged. The previous same-URL guard swallowed it.
