@@ -71,27 +71,42 @@
     toggle.setAttribute('aria-label', open ? '关闭导航' : '打开导航');
     if (restoreFocus && mobile.matches) toggle.focus();
   };
-  toggle.addEventListener('click', () => setMenu(!isOpen()));
+  // Navigation has its own lifecycle: dismiss the outgoing menu synchronously,
+  // without replaying its closing animation over the old or restored page.
+  const resetMenu = () => {
+    shell.classList.add('nav-reset');
+    setMenu(false);
+  };
+  const finishReset = () => requestAnimationFrame(() => shell.classList.remove('nav-reset'));
+  toggle.addEventListener('click', () => {
+    shell.classList.remove('nav-reset');
+    setMenu(!isOpen());
+  });
   document.addEventListener('click', event => {
     if (isOpen() && !sidebar.contains(event.target) && !toggle.contains(event.target)) setMenu(false);
   });
-  // Same-document category changes dismiss the panel before the content updates.
-  // Cross-document links keep the outgoing panel stable until the new page loads,
-  // avoiding a flash of the old page during navigation.
   sidebar.addEventListener('click', event => {
     const link = event.target.closest('a[href]');
-    if (!link || !mobile.matches) return;
+    if (!isOpen() || !link || event.defaultPrevented || event.button !== 0 ||
+        event.metaKey || event.ctrlKey || event.shiftKey || event.altKey ||
+        link.hasAttribute('download') || (link.target && link.target !== '_self')) return;
     const destination = new URL(link.href);
-    const sameDocument = destination.origin === location.origin &&
-      destination.pathname.replace(/index\\.html$/, '') === location.pathname.replace(/index\\.html$/, '');
-    if (sameDocument) setMenu(false);
+    if (destination.origin !== location.origin) return;
+    resetMenu();
+    const sameDocument = destination.pathname.replace(/index\.html$/, '') ===
+      location.pathname.replace(/index\.html$/, '');
+    // In-page links finish immediately; regular navigation retains the reset
+    // state until pagehide, so no outgoing menu panel can flash.
+    if (sameDocument) finishReset();
   });
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && isOpen()) setMenu(false, true);
   });
   mobile.addEventListener('change', () => setMenu(false));
-  window.addEventListener('pageshow', event => {
-    if (event.persisted) setMenu(false);
+  window.addEventListener('pagehide', resetMenu);
+  window.addEventListener('pageshow', () => {
+    resetMenu();
+    finishReset();
   });
   setMenu(false);
 

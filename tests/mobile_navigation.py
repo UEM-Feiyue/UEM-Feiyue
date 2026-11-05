@@ -56,8 +56,33 @@ def main():
                     assert page.locator("#menu-toggle").get_attribute(
                         "aria-expanded"
                     ) == "true"
+                    # Observe the *outgoing document* after site.js handles the
+                    # click. Previous tests only inspected the destination,
+                    # missing the visible residual-panel flash before navigation.
+                    page.evaluate("""() => {
+                        document.addEventListener('click', event => {
+                            if (!event.target.closest('#category-nav a.nav-contribute')) return;
+                            const menu = document.querySelector('#sidebar');
+                            const shell = document.querySelector('.shell');
+                            sessionStorage.setItem('outgoing-menu-state', JSON.stringify({
+                                reset: shell.classList.contains('nav-reset'),
+                                open: shell.classList.contains('menu-open'),
+                                panelOpen: menu.classList.contains('open'),
+                                inert: menu.inert,
+                                expanded: document.querySelector('#menu-toggle').getAttribute('aria-expanded'),
+                                transition: getComputedStyle(menu).transitionDuration
+                            }));
+                        });
+                    }""")
                     page.locator("#category-nav a.nav-contribute").click()
                     page.wait_for_url("**/submit.html")
+                    outgoing = page.evaluate(
+                        "() => JSON.parse(sessionStorage.getItem('outgoing-menu-state'))"
+                    )
+                    assert outgoing == {
+                        "reset": True, "open": False, "panelOpen": False,
+                        "inert": True, "expanded": "false", "transition": "0s"
+                    }, outgoing
                     assert page.locator(".mobile-brand-logo").is_visible()
                     assert page.locator(".menu-button").is_visible()
                     assert page.locator("#menu-toggle").get_attribute(

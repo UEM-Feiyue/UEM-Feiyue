@@ -35,6 +35,9 @@
     opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0);
     transition:opacity .2s ease,transform .2s ease,visibility 0s;
   }
+  /* Navigation reset is a lifecycle state, not an additional animation.
+     Close the old menu in the same frame before the browser swaps documents. */
+  .shell.nav-reset .sidebar,.shell.nav-reset .menu-lines span{transition:none}
   .sidebar .brand{display:none}
   .sidebar .nav{gap:3px}
   .sidebar .nav a{padding:10px 13px}
