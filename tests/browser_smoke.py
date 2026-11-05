@@ -106,13 +106,19 @@ def main():
                         "el => getComputedStyle(el).backgroundColor === 'rgba(0, 0, 0, 0)' && getComputedStyle(el).paddingTop === '0px'"
                     )
                     if width > 900:
-                        # A sticky sidebar must not flex-compress its brand as
-                        # the scroll position or viewport compositor changes.
+                        # The viewport-fixed desktop navigation stays independent of
+                        # document scrolling and must not compress its brand.
                         geometry = lambda: page.locator(brand + " img").evaluate("""el => {
                             const r = el.getBoundingClientRect();
                             return {width:r.width,height:r.height,top:r.top};
                         }""")
                         before_scroll = geometry()
+                        assert page.locator("#sidebar").evaluate(
+                            "el => getComputedStyle(el).position === 'fixed' && Math.abs(el.getBoundingClientRect().left) < .5"
+                        )
+                        assert page.locator(".page").evaluate(
+                            "el => Math.abs(el.getBoundingClientRect().left - document.querySelector('#sidebar').getBoundingClientRect().right) < .5"
+                        )
                         assert page.locator(brand).evaluate(
                             "el => getComputedStyle(el).flexShrink === '0'"
                         )
