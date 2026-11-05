@@ -99,8 +99,26 @@ def main():
                     assert page.locator(".footer-logo").evaluate(
                         "el => getComputedStyle(el).backgroundColor === 'rgba(0, 0, 0, 0)' && getComputedStyle(el).paddingTop === '0px'"
                     )
+                    if width > 900:
+                        # A sticky sidebar must not flex-compress its brand as
+                        # the scroll position or viewport compositor changes.
+                        geometry = lambda: page.locator(brand + " img").evaluate("""el => {
+                            const r = el.getBoundingClientRect();
+                            return {width:r.width,height:r.height,top:r.top};
+                        }""")
+                        before_scroll = geometry()
+                        assert page.locator(brand).evaluate(
+                            "el => getComputedStyle(el).flexShrink === '0'"
+                        )
+                        assert abs(before_scroll["width"] / before_scroll["height"] - 1226 / 285) < .015
                     page.evaluate("window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'})")
                     page.wait_for_function("scrollY > 100")
+                    if width > 900:
+                        after_scroll = geometry()
+                        for dimension in ("width", "height", "top"):
+                            assert abs(before_scroll[dimension] - after_scroll[dimension]) <= .5, (
+                                width, dimension, before_scroll, after_scroll
+                            )
                     page.locator(brand).click()
                     page.wait_for_function("scrollY <= 2")
                     assert page.url.rstrip("/").endswith(PREFIX)

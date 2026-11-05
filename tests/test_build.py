@@ -14,7 +14,7 @@ spec.loader.exec_module(build)
 
 class SubmissionBuildTests(unittest.TestCase):
     def test_unified_theme_background_and_footer(self):
-        stylesheet = (ROOT / "assets/css/site.css").read_text(encoding="utf-8")
+        stylesheet = "".join((ROOT / "assets/css/site.css").read_text(encoding="utf-8").split())
         homepage = (ROOT / "index.html").read_text(encoding="utf-8")
         submission = (ROOT / "submit.html").read_text(encoding="utf-8")
         self.assertIn('url("../images/anguo-garden.jpg")', stylesheet)
@@ -26,14 +26,14 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertIn("position:sticky;top:0;z-index:50", stylesheet)
         self.assertIn("--mobile-header-height:72px", stylesheet)
         self.assertIn(".shell.menu-open::before", stylesheet)
-        self.assertIn("body{background:var(--bg)}", stylesheet)
+        self.assertRegex(stylesheet, r"body\{[^}]*background:var\(--bg\)")
         self.assertNotIn("background-attachment:fixed", stylesheet)
         self.assertNotIn(".page::before{", stylesheet)
         self.assertIn('rel="preload" as="image"', homepage)
         self.assertIn('class="campus-banner"', homepage)
         self.assertIn('class="campus-banner"', submission)
         self.assertIn('class="campus-banner"', build.render({"category": "career", "author": "同学", "year": "2026", "destination": "企业"}, "## 正文", "articles/test.html"))
-        self.assertIn("background:var(--footer-surface)", stylesheet)
+        self.assertIn(".site-footer{flex:none;background:var(--surface)", stylesheet)
         for page in (homepage, submission):
             self.assertIn('data-site-footer', page)
             self.assertIn('assets/js/theme-init.js', page)
@@ -71,7 +71,7 @@ class SubmissionBuildTests(unittest.TestCase):
         submission = (ROOT / "submit.html").read_text(encoding="utf-8")
         source = (ROOT / "assets/js/submit.js").read_text(encoding="utf-8")
         site = (ROOT / "assets/js/site.js").read_text(encoding="utf-8")
-        css = (ROOT / "assets/css/site.css").read_text(encoding="utf-8")
+        css = "".join((ROOT / "assets/css/site.css").read_text(encoding="utf-8").split())
         schema = json.loads((ROOT / "data/schema.json").read_text(encoding="utf-8"))
         self.assertIn('id="year-options" class="year-options" popover', homepage)
         self.assertIn("yearMenu.showPopover()", site)
@@ -88,7 +88,7 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertEqual(fields["year"]["pattern"], "[0-9]{4}")
 
     def test_shared_theme_toc_and_form_layout(self):
-        stylesheet = (ROOT / "assets/css/site.css").read_text(encoding="utf-8")
+        stylesheet = "".join((ROOT / "assets/css/site.css").read_text(encoding="utf-8").split())
         homepage = (ROOT / "index.html").read_text(encoding="utf-8")
         submission = (ROOT / "submit.html").read_text(encoding="utf-8")
         js = (ROOT / "assets/js/site.js").read_text(encoding="utf-8")
@@ -100,7 +100,7 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertIn("['system', 'light', 'dark']", js)
         self.assertIn('class="year-select"', homepage)
         self.assertIn('appearance:none', stylesheet)
-        self.assertIn('.article-toc summary{', stylesheet)
+        self.assertIn('.article-tocsummary{', stylesheet)
         self.assertIn(".form-wrap{max-width:820px;padding:0;", stylesheet)
         article = build.render({"category": "career", "author": "同学", "year": "2026", "destination": "企业"},
                                "## 第一章\n\n正文\n\n## 第二章\n\n正文", "articles/test.html")
@@ -115,8 +115,8 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertIn('class="mobile-brand-logo" src="../assets/images/favicon-横版.png"', page)
         self.assertNotIn('brand-wordmark', page)
         self.assertNotIn('brand-seal', page)
-        stylesheet = (ROOT / "assets/css/site.css").read_text(encoding="utf-8")
-        self.assertIn('.footer-logo{display:block;width:52px;height:52px;flex:none;object-fit:contain}', stylesheet)
+        stylesheet = "".join((ROOT / "assets/css/site.css").read_text(encoding="utf-8").split())
+        self.assertIn('.footer-logo{display:block;width:52px;height:52px;flex:none;object-fit:contain;', stylesheet)
         self.assertNotIn("mask-image:", stylesheet)
         self.assertNotIn("clip-path:", stylesheet)
 
@@ -195,7 +195,7 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertEqual(set(categories), set(build.CATEGORIES))
 
     def test_preview_reuses_article_styles(self):
-        source = (ROOT / "assets/css/site.css").read_text(encoding="utf-8")
+        source = "".join((ROOT / "assets/css/site.css").read_text(encoding="utf-8").split())
         form = (ROOT / "submit.html").read_text(encoding="utf-8")
         self.assertIn('id="preview-text" class="article-page"', form)
         self.assertNotIn(".preview .article-body{font-size", source)
