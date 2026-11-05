@@ -1,6 +1,6 @@
 (() => {
   try {
-    const theme = localStorage.getItem('uem-theme');
-    if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+    const saved = localStorage.getItem('uem-theme');
+    if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
   } catch {}
 })();

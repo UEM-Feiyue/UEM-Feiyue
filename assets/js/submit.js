@@ -293,10 +293,9 @@
         used.add(id);
       }
       if (headings.length < 2) return null;
-      const nav = make('nav');
+      const nav = make('details');
       nav.className = 'article-toc';
-      nav.setAttribute('aria-label', '文章目录');
-      nav.append(make('strong', '本页目录'));
+      nav.append(make('summary', '本页目录'));
       const list = make('ul');
       for (const heading of headings) {
         const item = make('li');

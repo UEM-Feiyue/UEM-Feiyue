@@ -20,8 +20,8 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertIn('url("../images/anguo-garden.jpg")', stylesheet)
         self.assertIn(".campus-banner{", stylesheet)
         self.assertIn("background-size:cover", stylesheet)
-        self.assertIn("height:clamp(170px,23vw,310px)", stylesheet)
-        self.assertIn("height:clamp(150px,43vw,220px)", stylesheet)
+        self.assertIn("height:clamp(270px,30vw,440px)", stylesheet)
+        self.assertIn("height:clamp(220px,60vw,320px)", stylesheet)
         self.assertIn("@view-transition{navigation:auto}", stylesheet)
         self.assertIn("body{background:var(--bg)}", stylesheet)
         self.assertNotIn("background-attachment:fixed", stylesheet)
@@ -52,6 +52,26 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertIn('"pagefind"', renderer)
         self.assertNotIn('data-search=', homepage)
         self.assertIn('id="search-status"', homepage)
+
+    def test_shared_theme_toc_and_form_layout(self):
+        stylesheet = (ROOT / "assets/css/site.css").read_text(encoding="utf-8")
+        homepage = (ROOT / "index.html").read_text(encoding="utf-8")
+        submission = (ROOT / "submit.html").read_text(encoding="utf-8")
+        js = (ROOT / "assets/js/site.js").read_text(encoding="utf-8")
+        for document in (homepage, submission):
+            self.assertIn('data-mode="system"', document)
+            for mode in ("system", "light", "dark"):
+                self.assertIn('data-theme-icon="' + mode + '"', document)
+        self.assertIn("prefers-color-scheme:dark", stylesheet)
+        self.assertIn("['system', 'light', 'dark']", js)
+        self.assertIn('class="year-select"', homepage)
+        self.assertIn('appearance:none', stylesheet)
+        self.assertIn('.article-toc summary{', stylesheet)
+        self.assertIn(".form-wrap{max-width:820px;padding:0;", stylesheet)
+        article = build.render({"category": "career", "author": "同学", "year": "2026", "destination": "企业"},
+                               "## 第一章\n\n正文\n\n## 第二章\n\n正文", "articles/test.html")
+        self.assertIn('<details class="article-toc">', article)
+        self.assertIn('<summary>本页目录</summary>', article)
 
     def test_published_article_brand_assets(self):
         meta = {"category": "career", "author": "同学", "year": "2026", "destination": "企业"}

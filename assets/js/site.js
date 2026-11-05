@@ -1,27 +1,61 @@
 (() => {
   // The saved theme is applied before CSS in theme-init.js, not during first paint.
   const root = document.documentElement;
+  // Same three-way system / light / dark cycle as the personal site.
+  const modes = ['system', 'light', 'dark'];
+  const themeButton = document.querySelector('#theme-toggle');
+  const systemTheme = matchMedia('(prefers-color-scheme: dark)');
   const syncThemeControls = () => {
-    const dark = root.dataset.theme === 'dark';
-    document.querySelectorAll('#theme-toggle').forEach(button => {
-      button.setAttribute('aria-label', dark ? '切换明亮主题' : '切换暗黑主题');
-      button.setAttribute('aria-pressed', String(dark));
-    });
+    const mode = root.dataset.theme || 'system';
+    const next = modes[(modes.indexOf(mode) + 1) % modes.length];
+    const labels = {system:'跟随系统',light:'浅色模式',dark:'深色模式'};
+    themeButton.dataset.mode = mode;
+    themeButton.setAttribute('aria-label', '当前' + labels[mode] + '，切换到' + labels[next]);
+    themeButton.title = labels[mode] + ' · 点击切换到' + labels[next];
+    themeButton.querySelector('#theme-label').textContent = labels[mode];
   };
-  document.querySelectorAll('#theme-toggle').forEach(button => button.addEventListener('click', () => {
-    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
-    root.dataset.theme = next;
+  themeButton?.addEventListener('click', () => {
+    const mode = root.dataset.theme || 'system';
+    const next = modes[(modes.indexOf(mode) + 1) % modes.length];
+    if (next === 'system') delete root.dataset.theme;
+    else root.dataset.theme = next;
     try { localStorage.setItem('uem-theme', next); } catch {}
     syncThemeControls();
-  }));
+  });
+  systemTheme.addEventListener('change', syncThemeControls);
   window.addEventListener('storage', event => {
     if (event.key !== 'uem-theme') return;
-    if (event.newValue === 'dark' || event.newValue === 'light') root.dataset.theme = event.newValue;
+    if (event.newValue === 'light' || event.newValue === 'dark') root.dataset.theme = event.newValue;
     else delete root.dataset.theme;
     syncThemeControls();
   });
   window.addEventListener('pageshow', syncThemeControls);
   syncThemeControls();
+  // Native in-page directory: keyboard-accessible disclosure and active heading.
+  const contents = document.querySelector('details.article-toc');
+  if (contents) {
+    const links = [...contents.querySelectorAll('a[href^="#"]')];
+    const headings = links.map(link => document.getElementById(decodeURIComponent(link.hash.slice(1))));
+    const update = () => {
+      const probe = scrollY + 110;
+      let active = 0;
+      headings.forEach((heading, i) => {
+        if (heading && heading.getBoundingClientRect().top + scrollY <= probe) active = i;
+      });
+      links.forEach((link, i) => {
+        link.classList.toggle('is-active', i === active);
+        if (i === active) link.setAttribute('aria-current', 'location');
+        else link.removeAttribute('aria-current');
+      });
+    };
+    let pending = false;
+    window.addEventListener('scroll', () => {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(() => { pending = false; update(); });
+    }, {passive:true});
+    update();
+  }
 
   const sidebar = document.querySelector('#sidebar');
   const toggle = document.querySelector('#menu-toggle');

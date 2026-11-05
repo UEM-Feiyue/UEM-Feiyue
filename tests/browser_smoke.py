@@ -71,7 +71,7 @@ def main():
                         assert page.locator("#theme-toggle").is_visible()
                     assert "anguo-garden.jpg" in background["bannerImage"]
                     assert all(value.strip() == "cover" for value in background["bannerSize"].split(","))
-                    assert 0 < background["bannerHeight"] <= 310
+                    assert 220 <= background["bannerHeight"] <= 440
                     assert abs(background["bannerWidth"] - background["containerWidth"]) <= 1
                     assert background["contentTop"] >= background["bannerBottom"] - 1
                     assert background["contentBackground"] != "rgba(0, 0, 0, 0)"
@@ -97,10 +97,14 @@ def main():
                         assert page.locator("#menu-toggle").get_attribute("aria-expanded") == "true"
                         assert not page.locator("#sidebar").evaluate("el => el.inert")
                         assert page.locator("#theme-toggle").is_visible()
-                        original_theme = page.evaluate("document.documentElement.dataset.theme || 'light'")
-                        page.locator("#theme-toggle").click()
-                        assert page.evaluate("document.documentElement.dataset.theme") != original_theme
-                        page.locator("#theme-toggle").click()
+                        original_theme = page.evaluate("document.documentElement.dataset.theme")
+                        modes = ["system", "light", "dark"]
+                        start = modes.index(original_theme or "system")
+                        for step in range(1, 4):
+                            page.locator("#theme-toggle").click()
+                            current = modes[(start + step) % 3]
+                            assert page.locator("#theme-toggle").get_attribute("data-mode") == current
+                            assert (page.evaluate("document.documentElement.dataset.theme") or "system") == current
                         assert page.evaluate("document.documentElement.dataset.theme") == original_theme
                         page.keyboard.press("Escape")
                         assert page.locator("#menu-toggle").get_attribute("aria-expanded") == "false"
@@ -117,6 +121,8 @@ def main():
                     assert page.evaluate("window.__sameDocument")
                     assert "view=all" in page.url
                     assert page.locator(".article-item:visible").count() == len(articles)
+                    assert page.locator("#year-filter").evaluate("el => getComputedStyle(el).appearance") == "none"
+                    assert page.locator(".year-select svg").is_visible()
                     page.locator("#search").fill("no-matching-story-987654321")
                     page.wait_for_function("document.querySelector('#search-status').textContent.includes('没有找到匹配内容')")
                     assert page.locator(".empty-state").is_visible()
@@ -127,6 +133,12 @@ def main():
                     page.wait_for_selector(".article-body")
                     assert page.locator(".demo-badge").is_visible() == articles[0]["demo"]
                     assert page.locator(".article-toc").count() <= 1
+                    if page.locator(".article-toc").count():
+                        assert page.locator(".article-toc").evaluate("el => el.tagName") == "DETAILS"
+                        page.locator(".article-toc summary").click()
+                        assert page.locator(".article-toc").get_attribute("open") is not None
+                        assert page.locator(".article-toc a").first.is_visible()
+
                     assert page.locator("#category-nav [aria-current='page']").count() == 1
                     assert page.locator(".site-footer").count() == 1
                     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 2")
@@ -152,6 +164,8 @@ def main():
                     assert page.locator("#preview .article-body strong").inner_text() == "Test body"
                     assert not page.evaluate("Boolean(window.__unsafe)")
                     assert "公开 GitHub Issue" in page.locator(".notice").inner_text()
+                    assert page.locator(".form-wrap").evaluate("el => getComputedStyle(el).borderTopWidth") == "0px"
+                    assert page.locator(".form-wrap").evaluate("el => getComputedStyle(el).boxShadow") == "none"
                     assert page.locator("#submit-button").is_visible()
                     assert page.locator("#submit-button").is_disabled()
                     assert page.locator("#submit-button").inner_text() == "投稿分享"
