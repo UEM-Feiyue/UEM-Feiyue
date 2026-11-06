@@ -1109,6 +1109,32 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   margin: 0;
 }
 
+
+/* Community contact page: shared layout, tokens and responsive typography. */
+.community-content { max-width: 820px; margin: 0 auto 76px; }
+.community-section { padding: 28px 0; border-top: 1px solid var(--line); }
+.community-section h2 { margin: 0 0 10px; font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+.community-section > p { color: var(--muted); font-size: 14px; margin: 0 0 18px; }
+.community-people { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; margin-bottom: 18px; }
+.community-person { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-width: 0; padding: 22px 0; border-bottom: 1px solid var(--line); }
+.community-person-info { min-width: 0; }
+.community-person-name { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; margin: 0; font-size: 16px; font-weight: 650; }
+.community-role { font-size: 12px; font-weight: 500; color: var(--muted); }
+.community-person-info p { color: var(--muted); font-size: 13px; margin: 4px 0; }
+.community-person-links { display: flex; gap: 12px; flex: none; }
+.community-person-links a { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; color: var(--muted); }
+.community-person-links a:hover, .community-person-links a:focus-visible { color: var(--accent); }
+.community-person-links svg { width: 18px; height: 18px; }
+.community-links { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 5px; }
+.community-links a, .community-contact a { color: var(--accent); font-size: 14px; }
+.community-links a:hover, .community-contact a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.community-contact { display: flex; gap: 14px 24px; align-items: center; flex-wrap: wrap; }
+@media(max-width:580px) {
+  .community-content { margin-bottom: 42px; }
+  .community-people { grid-template-columns: 1fr; }
+  .community-person { gap: 12px; }
+}
+
 /* One shared right-arrow interaction, following the personal-site implementation. */
 .link-arrow {
   display: inline-block;
@@ -1135,15 +1161,15 @@ a:is(:hover, :focus-visible) .link-arrow-left {
   transform: translateX(-3px) rotate(225deg);
 }
 
-.nav-contribute {
+.nav a:is(.nav-contribute, .nav-community) {
   position: relative;
+  margin-top: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 16px;
 }
 
-.nav-contribute::before {
+.nav-contribute::before, .nav-community::before {
   content: "";
   position: absolute;
   top: -11px;

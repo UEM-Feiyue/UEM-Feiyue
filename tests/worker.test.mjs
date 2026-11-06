@@ -4,6 +4,7 @@ import worker, { validate, issueFor } from '../worker/src/index.js';
 
 const valid = {
   version: 1, category: 'career', author: '张同学', year: '2026',
+  college: '某学院', major: '软件工程',
   destination: '某科技公司', program: '软件工程师',
   body: '我准备了项目经历和面试。', contact: '', turnstileToken: 'sample-token'
 };
@@ -18,7 +19,10 @@ test('validates with the canonical schema', () => {
   assert.equal(validate({ ...valid, category: 'made-up' }), null);
   assert.equal(validate({ ...valid, year: '20xx' }), null);
   assert.equal(validate({ ...valid, author: '' }), null);
-  assert.equal(validate({ ...valid, body: 'x'.repeat(12001) }), null);
+  assert.equal(validate({ ...valid, college: '' }), null);
+  assert.equal(validate({ ...valid, major: '' }), null);
+  assert.equal(validate({ ...valid, body: 'x'.repeat(8000) })?.category, 'career');
+  assert.equal(validate({ ...valid, body: 'x'.repeat(8001) }), null);
   assert.equal(validate({ ...valid, contact: 'x'.repeat(501) }), null);
   assert.equal(validate({ ...valid, author: 123 }), null);
 });
