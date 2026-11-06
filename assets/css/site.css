@@ -1609,6 +1609,11 @@ proportions; no composition, mask, crop or duplicate seal. */
     display: none;
   }
 
+  .search-open svg {
+    width: 28px;
+    height: 28px;
+  }
+
   .education-fields {
     grid-template-columns: 1fr;
   }
