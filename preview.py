@@ -3,6 +3,7 @@
 import argparse
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from io import BytesIO
 from pathlib import Path
 from importlib.metadata import PackageNotFoundError, version
 import itertools
@@ -14,6 +15,7 @@ import tempfile
 from threading import Event, RLock, Thread
 import time
 import unicodedata
+from urllib.parse import urlsplit
 
 from scripts import site_build
 
@@ -50,6 +52,13 @@ class PreviewHandler(SimpleHTTPRequestHandler):
         super().end_headers()
 
     def send_head(self):
+        if urlsplit(self.path).path == "/assets/js/submission-config.js":
+            content = b"window.UEM_SUBMISSION_CONFIG={enabled:false,localPreview:true};\n"
+            self.send_response(200)
+            self.send_header("Content-Type", "application/javascript; charset=utf-8")
+            self.send_header("Content-Length", str(len(content)))
+            self.end_headers()
+            return BytesIO(content)
         # Always serve the current build, including clients with old cached files.
         if "If-Modified-Since" in self.headers:
             del self.headers["If-Modified-Since"]

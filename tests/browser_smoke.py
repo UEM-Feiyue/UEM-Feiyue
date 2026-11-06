@@ -3,11 +3,14 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
+import sys
 from threading import Thread
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 PREFIX = "/UEM-Feiyue.github.io"
+sys.path.insert(0, str(ROOT))
+from preview import PreviewHandler
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -484,6 +487,25 @@ def main():
             assert submissions[0]["turnstileToken"] == "test-token"
             assert page.locator("#author").input_value() == ""
             context.close()
+            # The actual preview server must not load Turnstile on localhost.
+            preview_server = ThreadingHTTPServer(("127.0.0.1", 0), partial(PreviewHandler, directory=str(ROOT / "_site")))
+            preview_worker = Thread(target=preview_server.serve_forever, daemon=True)
+            preview_worker.start()
+            try:
+                context = browser.new_context()
+                page = context.new_page()
+                cloudflare_requests = []
+                page.on("request", lambda request: cloudflare_requests.append(request.url) if "challenges.cloudflare.com" in request.url else None)
+                page.goto(f"http://127.0.0.1:{preview_server.server_port}/submit.html", wait_until="networkidle")
+                page.locator("#body").wait_for()
+                assert page.locator("#submit-button").is_disabled()
+                assert "本地预览" in page.locator("#submission-status").inner_text()
+                assert cloudflare_requests == []
+                context.close()
+            finally:
+                preview_server.shutdown()
+                preview_worker.join()
+                preview_server.server_close()
             browser.close()
     finally:
         server.shutdown()
