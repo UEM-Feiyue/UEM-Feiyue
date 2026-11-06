@@ -14,7 +14,7 @@ macOS / Linux 使用 `python3 preview.py`。访问 <http://127.0.0.1:8765/>；�
 
 ## 页面与内容
 
-- 根目录 `index.html` 和 `submit.html` 直接维护首页与投稿界面。文章构建复用首页的导航、移动端菜单和页脚，不需要维护额外模板目录。
+- 根目录 `index.html`、`submit.html` 和 `community.html` 直接维护首页、投稿与共建联系界面。文章构建复用首页的导航、移动端菜单和页脚，不需要维护额外模板目录。
 - `content/` 保存 Markdown，格式见 [content/README.md](content/README.md)。演示文章继续明确标注，不代表真实投稿。
 - `data/schema.json` 统一分类和字段规则；浏览器表单与 Python 构建都据此校验。扩展字段时先修改此处，再调整业务处理。
 - `scripts/site_build.py` 在隔离目录中生成文章、列表和公开数据，并使用与个人网页一致的 Pagefind 1.5.2 为 `_site/pagefind/` 生成静态全文索引。首页不维护第二套搜索文本：输入关键词时按需加载 Pagefind，文章结果仍可按方向和届次筛选。届次按钮采用紧凑的原生 Popover 增强选择菜单，旧浏览器保留 select 作为无障碍回退。
