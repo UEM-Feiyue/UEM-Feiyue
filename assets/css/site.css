@@ -1126,7 +1126,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .community-links a, .community-contact a { color: var(--accent); font-size: 14px; }
 .community-links a:hover, .community-contact a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .community-contact { display: flex; gap: 14px 24px; align-items: center; flex-wrap: wrap; }
-.community-email { overflow-wrap: anywhere; }
 @media(max-width:580px) {
   .community-content { margin-bottom: 42px; }
   .community-person { gap: 13px; }
