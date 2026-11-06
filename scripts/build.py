@@ -68,7 +68,7 @@ def shared_chrome(source, page, prefix="./", category=None):
     """Reuse the homepage's navigation/header/footer without a separate UI framework."""
     home = (ROOT / "index.html").read_text(encoding="utf-8")
     sidebar = re.search(r'<aside class="sidebar".*?</aside>', home, re.S)[0]
-    links = [f'<a href="{prefix}" data-view="home"' + (' aria-current="page"' if page == "index" else '') + '>首页</a>',
+    links = [f'<a href="{prefix}" data-view="home">首页</a>',
              f'<a href="{prefix}?view=all" data-category="all">全部经历</a>']
     for item in SCHEMA["categories"]:
         selected = ' aria-current="page"' if category == item["id"] else ''
@@ -90,7 +90,6 @@ def shared_chrome(source, page, prefix="./", category=None):
         source = source.replace('href="./"', f'href="{prefix}"')
     if page != "index":
         source = source.replace('class="page is-home"', 'class="page"')
-        source = re.sub(r'<link rel="preload" as="image"[^>]*>', '', source)
     return source
 
 

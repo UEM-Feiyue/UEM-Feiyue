@@ -15,10 +15,17 @@ from preview import PreviewHandler
 
 
 class Handler(SimpleHTTPRequestHandler):
+    script_delay = 0
+
     def translate_path(self, path):
         if path.startswith(PREFIX + "/"):
             path = path[len(PREFIX):]
         return super().translate_path(path)
+
+    def do_GET(self):
+        if self.path.endswith('/assets/js/site.js'):
+            time.sleep(self.script_delay)
+        super().do_GET()
 
     def log_request(self, *args):
         pass
@@ -358,26 +365,30 @@ def main():
                     print(f"UEM browser passed: {width}px, {theme}")
             context = browser.new_context(reduced_motion="no-preference")
             page = context.new_page()
-            page.add_init_script("""(() => {
-                const capture = () => {
-                    const nav = document.querySelector('#category-nav');
-                    const intro = document.querySelector('#archive-intro');
-                    if (!nav || !intro) return requestAnimationFrame(capture);
-                    window.__firstFrame = {
-                        active: nav.querySelector('[aria-current="page"]')?.dataset.category,
-                        homeHidden: document.querySelector('#home-intro').hidden,
-                        archiveHidden: intro.hidden,
-                        heading: document.querySelector('#stories-heading').textContent
-                    };
-                };
-                requestAnimationFrame(capture);
-            })();""")
-            page.route("**/assets/js/site.js", lambda route: (time.sleep(0.4), route.continue_()))
-            page.goto(base + "/?category=kaoyan", wait_until="networkidle")
-            assert page.evaluate("window.__firstFrame") == {
-                "active": "kaoyan", "homeHidden": True,
-                "archiveHidden": False, "heading": "考研经历"
-            }
+            Handler.script_delay = 2
+            try:
+                page.goto(base + "/?category=kaoyan", wait_until="commit")
+                page.wait_for_selector('#archive-intro')
+                assert page.evaluate("""() => ({
+                    active: document.querySelector('#category-nav [aria-current="page"]')?.dataset.category,
+                    homeHidden: document.querySelector('#home-intro').hidden,
+                    archiveHidden: document.querySelector('#archive-intro').hidden,
+                    heading: document.querySelector('#stories-heading').textContent
+                })""") == {
+                    "active": "kaoyan", "homeHidden": True,
+                    "archiveHidden": False, "heading": "考研经历"
+                }
+                page.wait_for_load_state("networkidle")
+                Handler.script_delay = 0
+                page.goto(base + "/articles/demo-postgraduate.html", wait_until="networkidle")
+                Handler.script_delay = 2
+                page.locator('.article-back').click(no_wait_after=True)
+                page.wait_for_url('**/?category=kaoyan', wait_until='commit')
+                page.wait_for_selector('#archive-intro')
+                assert page.locator('#category-nav [aria-current="page"]').get_attribute('data-category') == 'kaoyan'
+                assert page.locator('#home-intro').is_hidden()
+            finally:
+                Handler.script_delay = 0
             errors = []
             page.on("pageerror", lambda error: errors.append(str(error)))
             page.goto(base + "/?view=all", wait_until="networkidle")

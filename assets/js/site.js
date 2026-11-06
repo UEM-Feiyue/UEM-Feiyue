@@ -455,6 +455,7 @@
     const params = new URLSearchParams(location.search);
     const selected = params.get('category');
     const isHome = !selected && params.get('view') !== 'all';
+    document.documentElement.dataset.view = isHome ? 'home' : 'archive';
     document.querySelector('.page').classList.toggle('is-home', isHome);
     document.querySelector('#home-intro').hidden = !isHome;
     document.querySelector('#archive-intro').hidden = isHome;

@@ -1212,6 +1212,12 @@ a:is(:hover, :focus-visible) .link-arrow-left {
   display: none!important;
 }
 
+html[data-view="home"] #archive-intro,
+html[data-view="home"] #archive-section,
+html[data-view="archive"] #home-intro {
+  display: none;
+}
+
 /* Accessible mobile navigation and compact page structure. */
 .nav a:focus-visible, .sidebar-theme:focus-visible {
   outline-offset: 0;
