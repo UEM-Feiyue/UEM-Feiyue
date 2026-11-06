@@ -586,13 +586,14 @@ def main():
             toc = page.locator(".article-toc")
             toc.locator("summary").click()
             assert toc.get_attribute("open") is not None
+            assert toc.locator("a.is-active").count() == 0
             assert toc.locator(".article-toc-panel").evaluate("el => getComputedStyle(el).transitionDuration") != "0s"
             page.wait_for_timeout(300)
             toc.locator("summary").click()
             page.wait_for_function("!document.querySelector('.article-toc').open")
             toc.locator("summary").click()
             toc.locator("a").last.click()
-            assert toc.locator("a.is-active").last.count() == 1
+            page.wait_for_function("[...document.querySelectorAll('.article-toc a')].at(-1)?.classList.contains('is-active')")
             page.wait_for_function("""() => {
                 const link = [...document.querySelectorAll('.article-toc a')].at(-1);
                 const target = document.getElementById(decodeURIComponent(link.hash.slice(1)));

@@ -106,7 +106,7 @@
     }));
     const update = () => {
       const probe = scrollY + (parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0) + 28;
-      let active = 0;
+      let active = -1;
       headings.forEach((heading, i) => {
         if (heading && heading.getBoundingClientRect().top + scrollY <= probe) active = i;
       });
