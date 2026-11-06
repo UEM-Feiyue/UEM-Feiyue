@@ -453,7 +453,7 @@ def main():
             page = context.new_page()
             for route in ("/", "/" + articles[0]["url"]):
                 page.goto(base + PREFIX + route)
-                assert page.locator(".footer-links a").count() == 6
+                assert page.locator(".footer-links a").count() == 7
                 assert page.locator("#category-nav [data-category]").count() == 5
                 assert page.locator("h1").count() >= 1
                 if route == "/":
