@@ -33,7 +33,7 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertIn('class="campus-banner"', homepage)
         self.assertIn('class="campus-banner"', submission)
         self.assertIn('class="campus-banner"', build.render({"category": "career", "author": "同学", "year": "2026", "destination": "企业"}, "## 正文", "articles/test.html"))
-        self.assertIn(".site-footer{flex:none;background:var(--surface)", stylesheet)
+        self.assertIn(".site-footer{flex:none;background:linear-gradient(tobottom,var(--bg),var(--surface)80px)", stylesheet)
         for page in (homepage, submission):
             self.assertIn('data-site-footer', page)
             self.assertIn('assets/js/theme-init.js', page)
@@ -64,7 +64,7 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertNotIn('data-pagefind-ignore', article)
         self.assertIn('"pagefind"', renderer)
         self.assertNotIn('data-search=', homepage)
-        self.assertIn('id="search-status"', homepage)
+        self.assertIn('id="search-dialog"', homepage)
 
     def test_year_menu_and_editor_contract(self):
         homepage = (ROOT / "index.html").read_text(encoding="utf-8")

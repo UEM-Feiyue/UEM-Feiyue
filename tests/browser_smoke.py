@@ -78,6 +78,8 @@ def main():
                         assert layout["height"] == 72
                         assert abs(layout["imageTop"] - layout["bottom"]) <= 1
                         assert layout["surface"] != "rgba(0, 0, 0, 0)"
+                        assert background["bannerImage"].count("linear-gradient") == 3
+                        assert layout["surface"] in background["bannerImage"]
                     else:
                         assert page.locator(".campus-banner").evaluate("el => Math.abs(el.getBoundingClientRect().top) < 1")
                     assert page.locator("#theme-toggle").count() == 1
@@ -124,18 +126,27 @@ def main():
                         )
                         assert abs(before_scroll["width"] / before_scroll["height"] - 1226 / 285) < .015
                     page.evaluate("window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'})")
-                    page.wait_for_function("scrollY > 100")
+                    if page.evaluate("document.documentElement.scrollHeight - innerHeight > 100"):
+                        page.wait_for_function("scrollY > 100")
                     if width > 900:
                         after_scroll = geometry()
                         for dimension in ("width", "height", "top"):
                             assert abs(before_scroll[dimension] - after_scroll[dimension]) <= .5, (
                                 width, dimension, before_scroll, after_scroll
                             )
+                        divider_positions = page.evaluate("""() => [
+                            document.querySelector('.sidebar-bottom').getBoundingClientRect().top,
+                            document.querySelector('.footer-bottom').getBoundingClientRect().top
+                        ]""")
+                        assert abs(divider_positions[0] - divider_positions[1]) <= 2, (width, divider_positions)
                     page.locator(brand).click()
                     page.wait_for_function("scrollY <= 2")
                     assert page.url.rstrip("/").endswith(PREFIX)
                     assert page.locator("#category-nav [data-category]").count() == 5
                     assert page.locator(".site-footer").count() == 1
+                    assert page.locator(".site-footer").evaluate(
+                        "el => getComputedStyle(el).backgroundImage.includes('linear-gradient')"
+                    )
                     # Footer columns align to the outside edges of the content area.
                     footer = page.evaluate("""() => {
                         const inner = document.querySelector('.footer-inner').getBoundingClientRect();
@@ -157,6 +168,7 @@ def main():
                         assert page.locator(".shell").evaluate("el => el.classList.contains('menu-open')")
                         assert page.locator("#sidebar").evaluate("el => getComputedStyle(el).position === 'fixed'")
                         assert page.locator("#sidebar").evaluate("el => el.getBoundingClientRect().top >= document.querySelector('.topbar').getBoundingClientRect().bottom")
+                        assert page.locator("#sidebar").evaluate("el => el.getBoundingClientRect().height < innerHeight * .8")
                         assert page.locator("#menu-toggle").evaluate("el => getComputedStyle(el).position !== 'absolute'")
                         assert not page.locator("#sidebar").evaluate("el => el.inert")
                         assert page.locator("#theme-toggle").is_visible()
@@ -198,18 +210,31 @@ def main():
                     page.locator("#year-trigger").focus()
                     page.keyboard.press("ArrowDown")
                     assert page.locator("#year-options").evaluate("el => el.matches(':popover-open')")
+                    assert page.locator("#year-options [data-value='all']").evaluate(
+                        "el => el.getBoundingClientRect().height < 50 && el.getBoundingClientRect().right <= innerWidth - 8"
+                    )
                     page.keyboard.press("Escape")
                     assert not page.locator("#year-options").evaluate("el => el.matches(':popover-open')")
                     page.locator("#year-trigger").click()
                     page.locator("#year-options [data-value='all']").click()
                     assert page.locator("#year-filter").input_value() == "all"
+                    visible_before_search = page.locator(".article-item:visible").count()
+                    page.locator(".search-open").click()
+                    assert page.locator("#search-dialog").evaluate("el => el.open")
+                    assert page.locator("#search").evaluate("el => document.activeElement === el")
+                    assert page.locator("#search-dialog").evaluate("""el => {
+                        const dialog = el.getBoundingClientRect();
+                        const button = document.querySelector('.search-open').getBoundingClientRect();
+                        return Math.abs(dialog.top - button.bottom - 12) < 2 &&
+                            Math.abs((dialog.left + dialog.right) / 2 - innerWidth / 2) < 2;
+                    }""")
                     page.locator("#search").fill("no-matching-story-987654321")
-                    page.wait_for_function("document.querySelector('#search-status').textContent.includes('没有找到匹配内容')")
-                    assert page.locator(".empty-state").is_visible()
+                    assert page.locator(".article-item:visible").count() == visible_before_search
+                    page.wait_for_function("document.querySelector('#search-results').textContent.includes('没有找到匹配内容')")
                     page.locator("#search").fill(articles[0]["author"])
-                    page.wait_for_function("document.querySelector('#search-status').textContent.includes('全文搜索结果')")
-                    assert page.locator(".article-item:visible").count() > 0
-                    page.locator(".article-item:visible h3 a").first.click()
+                    page.locator("#search-results li a").first.wait_for(state="visible")
+                    assert page.locator("#search-results mark").count() > 0
+                    page.locator("#search-results li a").first.click()
                     page.wait_for_selector(".article-body")
                     assert page.locator(".demo-badge").is_visible() == articles[0]["demo"]
                     assert page.locator(".article-toc").count() <= 1
@@ -223,8 +248,8 @@ def main():
                     assert page.locator(".site-footer").count() == 1
                     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 2")
                     page.go_back(wait_until="networkidle")
-                    assert page.locator("#search").is_visible()
-                    assert page.locator("#search").input_value() == articles[0]["author"]
+                    assert page.locator(".search-open").is_visible()
+                    assert not page.locator("#search-dialog").evaluate("el => el.open")
                     if width == 390 and theme == "light":
                         # Cross-document navigation should never expose the old page with
                         # a dismissed menu (the old root snapshot flash).
@@ -237,7 +262,7 @@ def main():
                         assert page.locator("#menu-toggle").get_attribute("aria-expanded") == "false"
                         assert page.locator("#sidebar").evaluate("el => el.inert")
                         page.go_back(wait_until="networkidle")
-                        assert page.locator("#search").is_visible()
+                        assert page.locator(".search-open").is_visible()
                     # Closed-mode regression without contacting live Turnstile or Worker.
                     page.route("**/assets/js/submission-config.js*", lambda route: route.fulfill(
                         content_type="application/javascript",
@@ -295,14 +320,25 @@ def main():
             page.locator('#category-nav [data-category="career"]').click()
             page.wait_for_function("location.search === '?category=career' && !document.querySelector('#archive-section').hidden")
             assert page.evaluate("window.__sameDocument")
+            page.keyboard.press("Control+k")
+            assert page.locator('#search-dialog').evaluate("el => el.open")
             page.locator('#search').fill('no-matching-story-987654321')
+            page.wait_for_function("document.querySelector('#search-results').textContent.includes('没有找到匹配内容')")
+            page.keyboard.press("Escape")
+            assert not page.locator('#search-dialog').evaluate("el => el.open")
+            page.wait_for_function("document.querySelector('#search').value === ''")
             page.locator('#category-nav [data-category="all"]').click()
-            page.wait_for_function("location.search === '?view=all' && document.querySelector('#search').value === ''")
+            page.wait_for_function("location.search === '?view=all'")
             page.go_back()
-            assert page.locator('#search').input_value() == 'no-matching-story-987654321'
-            assert page.locator('#empty-state').is_visible()
+            assert page.url.endswith('?category=career')
+            assert page.locator('.article-item:visible').count() == 1
             page.go_forward()
-            assert page.locator('#search').input_value() == ''
+            assert page.url.endswith('?view=all')
+            page.goto(base + '/?category=kaoyan', wait_until='networkidle')
+            page.locator('.search-open').click()
+            page.locator('#search').fill('周同学')
+            page.wait_for_function("document.querySelector('#search-results').textContent.includes('没有找到匹配内容')")
+            page.locator('.search-close').click()
             page.locator(".article-item:visible h3 a").first.click()
             page.wait_for_load_state("networkidle")
             page.locator(".article-back").click()
@@ -373,16 +409,26 @@ def main():
             context = browser.new_context()
             page = context.new_page()
             page.goto(base + "/?view=all", wait_until="networkidle")
+            page.locator(".search-open").click()
             page.locator("#search").fill("推荐信")
-            page.wait_for_function("document.querySelector('#search-status').textContent.includes('全文搜索结果')")
-            assert page.locator(".article-item:visible").count() == 1
-            assert "陈同学" in page.locator(".article-item:visible").inner_text()
-            assert "推荐信" in page.locator(".article-item:visible .article-excerpt").inner_text()
+            page.locator("#search-results li a").first.wait_for(state="visible")
+            assert page.locator("#search-results li a").count() == 1
+            assert "陈同学" in page.locator("#search-results li a").inner_text()
+            assert "推荐信" in page.locator("#search-results .search-match").inner_text()
+            assert page.locator("#search-results .search-match mark").count() == 1
+            page.locator(".search-close").click()
             page.locator("#year-trigger").click()
             page.locator("#year-options [data-value='2026']").click()
-            assert page.locator(".article-item:visible").count() == 1
+            assert page.locator(".article-item:visible").count() > 0
+            assert page.locator(".article-item:visible").evaluate_all(
+                "items => items.every(item => item.dataset.year === '2026')"
+            )
+            page.locator(".search-open").click()
+            page.locator("#search").fill("推荐信")
+            page.locator("#search-results li a").first.wait_for(state="visible")
+            assert page.locator("#search-results li a").count() == 1
             page.locator("#search").fill("")
-            assert page.locator(".article-item:visible").count() == len(articles)
+            assert page.locator("#search-results").is_hidden()
             context.close()
             # Mocked public mode: confirm the complete browser payload/feedback
             # without contacting Cloudflare or opening an actual GitHub Issue.
