@@ -393,37 +393,40 @@
       if (id !== requestId) return;
       const pages = await Promise.all((found?.results || []).map(item => item.data()));
       if (id !== requestId) return;
-      const titleQuery = query.normalize('NFKC').toLocaleLowerCase();
+      const normalize = value => value.normalize('NFKC').toLocaleLowerCase();
+      const titleQuery = normalize(query);
       const exactCjkPhrase = /^[\p{Script=Han}]{2,}$/u.test(query);
-      const indexed = new Set(pages.map(page => new URL(page.url, location.href).pathname));
-      for (const [path, card] of cardByPath) {
-        if (card.hidden || indexed.has(path)) continue;
+      const bodyMatches = new Map(pages.map((page, rank) => [indexedPath(new URL(page.url, location.href).pathname), {page, rank}]));
+      const matches = [...cardByPath].flatMap(([path, card]) => {
+        if (card.hidden) return [];
         const title = card.querySelector('h3 a').textContent;
         const byline = card.querySelector('.article-meta').textContent;
-        if (!(title + ' ' + byline).normalize('NFKC').toLocaleLowerCase().includes(titleQuery)) continue;
-        pages.push({url: path, meta: {title, byline}, content: '', excerpt: ''});
-      }
-      pages.sort((a, b) => Number((b.meta.title + ' ' + (b.meta.byline || '')).normalize('NFKC').toLocaleLowerCase().includes(titleQuery)) -
-        Number((a.meta.title + ' ' + (a.meta.byline || '')).normalize('NFKC').toLocaleLowerCase().includes(titleQuery)));
+        const titleMatch = normalize(title).includes(titleQuery);
+        const bylineMatch = normalize(byline).includes(titleQuery);
+        const body = bodyMatches.get(path);
+        if (!titleMatch && !bylineMatch && !body) return [];
+        if (exactCjkPhrase && !title.includes(query) && !byline.includes(query) && !(body?.page.content || '').includes(query)) return [];
+        return [{card, title, byline, titleMatch, bylineMatch, body}];
+      });
+      matches.sort((a, b) => Number(b.titleMatch) - Number(a.titleMatch) ||
+        Number(b.bylineMatch) - Number(a.bylineMatch) ||
+        (a.body?.rank ?? pages.length) - (b.body?.rank ?? pages.length));
       const list = document.createElement('ul');
-      for (const page of pages) {
-        const card = cardByPath.get(new URL(page.url, location.href).pathname);
-        if (!card || card.hidden) continue;
-        if (exactCjkPhrase && !card.querySelector('h3 a').textContent.includes(query) && !(page.meta.byline || '').includes(query) && !page.content.includes(query)) continue;
+      for (const match of matches) {
         const row = document.createElement('li');
         const link = document.createElement('a');
-        link.href = card.querySelector('h3 a').href;
+        link.href = match.card.querySelector('h3 a').href;
         const title = document.createElement('span');
         title.className = 'search-title';
-        highlight(title, card.querySelector('h3 a').textContent, query);
+        highlight(title, match.title, query);
         link.append(title);
-        const byline = card.querySelector('.article-meta').textContent;
-        const position = exactCjkPhrase ? page.content.indexOf(query) : -1;
-        if (byline.normalize('NFKC').toLocaleLowerCase().includes(titleQuery) || position >= 0 || page.excerpt?.includes('<mark>')) {
+        const page = match.body?.page;
+        const position = exactCjkPhrase ? (page?.content || '').indexOf(query) : -1;
+        if (match.bylineMatch || position >= 0 || page?.excerpt?.includes('<mark>')) {
           const note = document.createElement('span');
           note.className = 'search-match';
-          if (byline.normalize('NFKC').toLocaleLowerCase().includes(titleQuery)) {
-            highlight(note, byline, query);
+          if (match.bylineMatch) {
+            highlight(note, match.byline, query);
           } else if (position >= 0) {
             highlight(note, page.content.slice(Math.max(0, position - 30), position + query.length + 50), query);
           } else note.innerHTML = page.excerpt;
