@@ -1067,10 +1067,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   text-decoration: none;
 }
 
-.article-toc a:hover {
-  color: var(--accent);
-}
-
 /* Archive-first layout: category navigation lives in the sidebar, not repeated cards. */
 .archive-intro {
   display: flex;

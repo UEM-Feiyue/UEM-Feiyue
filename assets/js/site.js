@@ -417,11 +417,14 @@
         title.className = 'search-title';
         highlight(title, card.querySelector('h3 a').textContent, query);
         link.append(title);
+        const byline = card.querySelector('.article-meta').textContent;
         const position = exactCjkPhrase ? page.content.indexOf(query) : -1;
-        if (position >= 0 || page.excerpt?.includes('<mark>')) {
+        if (byline.normalize('NFKC').toLocaleLowerCase().includes(titleQuery) || position >= 0 || page.excerpt?.includes('<mark>')) {
           const note = document.createElement('span');
           note.className = 'search-match';
-          if (position >= 0) {
+          if (byline.normalize('NFKC').toLocaleLowerCase().includes(titleQuery)) {
+            highlight(note, byline, query);
+          } else if (position >= 0) {
             highlight(note, page.content.slice(Math.max(0, position - 30), position + query.length + 50), query);
           } else note.innerHTML = page.excerpt;
           link.append(note);

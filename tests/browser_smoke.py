@@ -461,6 +461,14 @@ def main():
             page.locator("#search").fill("林同学")
             page.wait_for_function("document.querySelectorAll('#search-results li a').length === 1")
             assert page.locator("#search-results .search-title mark").count() == 1
+            page.locator("#search").fill("2026")
+            page.wait_for_function("document.querySelectorAll('#search-results li a').length === 4")
+            assert page.locator("#search-results .search-match mark").count() == 4
+            assert page.locator("#search-results .search-match").first.inner_text().startswith("2026 届")
+            page.locator("#search").fill("某学院")
+            page.wait_for_function("document.querySelector('#search-results .search-match mark')?.textContent === '某学院'")
+            assert page.locator("#search-results li a").count() == 4
+            assert page.locator("#search-results .search-match mark").count() == 4
             page.locator("#search").fill("推荐信")
             page.locator("#search-results li a").first.wait_for(state="visible")
             assert page.locator("#search-results li a").count() == 1
