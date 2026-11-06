@@ -197,6 +197,19 @@ def main():
                     assert page.evaluate("window.__sameDocument")
                     assert "view=all" in page.url
                     assert page.locator(".article-item:visible").count() == len(articles)
+                    if width in (390, 1440) and theme == "light":
+                        page.evaluate("scrollTo(0, document.body.scrollHeight)")
+                        assert page.evaluate("scrollY > 0")
+                        if width <= 900:
+                            page.locator("#menu-toggle").click()
+                        page.locator("#category-nav [data-category='kaoyan']").click()
+                        page.wait_for_url("**/?category=kaoyan")
+                        page.wait_for_function("scrollY === 0")
+                        assert page.locator(".article-item:visible").count() == 1
+                        if width <= 900:
+                            page.locator("#menu-toggle").click()
+                        page.locator("#category-nav [data-category='all']").click()
+                        page.wait_for_url("**/?view=all")
                     assert page.locator("#year-filter").evaluate("el => getComputedStyle(el).appearance") == "none"
                     assert page.locator(".year-select svg").is_visible()
                     assert page.locator("#year-trigger").is_visible()
