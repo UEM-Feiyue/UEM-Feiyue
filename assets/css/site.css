@@ -1593,6 +1593,22 @@ proportions; no composition, mask, crop or duplicate seal. */
 /* Responsive layout and environment preferences */
 
 @media(max-width:900px) {
+  .search-open {
+    position: fixed;
+    z-index: 51;
+    top: 14px;
+    right: calc(clamp(18px,4vw,28px) + 52px);
+    width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+  }
+
+  .search-open .search-label, .search-open kbd {
+    display: none;
+  }
+
   .education-fields {
     grid-template-columns: 1fr;
   }
@@ -1799,19 +1815,6 @@ proportions; no composition, mask, crop or duplicate seal. */
 
   .section-actions>p {
   text-align: right;
-  }
-
-  .search-open {
-  flex: none;
-  justify-content: center;
-  width: 44px;
-  min-height: 44px;
-  padding: 0;
-  border-bottom: 0;
-  }
-
-  .search-open .search-label, .search-open kbd {
-  display: none;
   }
 
   .submit-intro {

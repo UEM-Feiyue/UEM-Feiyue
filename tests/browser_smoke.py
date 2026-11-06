@@ -250,16 +250,33 @@ def main():
                     page.locator(".search-open").click()
                     assert page.locator("#search-dialog").evaluate("el => el.open")
                     assert page.locator("#search").evaluate("el => document.activeElement === el")
+                    if width <= 900:
+                        assert page.locator('.search-open').evaluate("""el => {
+                            const button = el.getBoundingClientRect();
+                            const menu = document.querySelector('#menu-toggle').getBoundingClientRect();
+                            return getComputedStyle(el.querySelector('.search-label')).display === 'none' &&
+                                button.right + 4 <= menu.left;
+                        }""")
                     assert page.locator("#search-dialog").evaluate("""el => {
                         const dialog = el.getBoundingClientRect();
                         const button = document.querySelector('.search-open').getBoundingClientRect();
-                        const expectedTop = innerWidth <= 900
-                            ? ((visualViewport?.offsetTop || 0) + (visualViewport?.height || innerHeight) / 2)
-                            : button.bottom + 12;
-                        const actualTop = innerWidth <= 900 ? (dialog.top + dialog.bottom) / 2 : dialog.top;
+                        const expectedTop = button.bottom + 12;
+                        const actualTop = dialog.top;
                         return Math.abs(actualTop - expectedTop) < 3 &&
-                            Math.abs((dialog.left + dialog.right) / 2 - innerWidth / 2) < 2;
+                            Math.abs((dialog.left + dialog.right) / 2 - innerWidth / 2) < 2 &&
+                            (innerWidth > 900 || button.bottom <= document.querySelector('.topbar').getBoundingClientRect().bottom);
                     }""")
+                    if width <= 900:
+                        assert page.locator('#search-dialog').evaluate("""el => {
+                            const viewport = visualViewport;
+                            Object.defineProperty(viewport, 'height', {configurable: true, value: 360});
+                            viewport.dispatchEvent(new Event('resize'));
+                            const available = 360 + viewport.offsetTop - el.getBoundingClientRect().top - 12;
+                            const fits = parseFloat(getComputedStyle(el).maxHeight) <= available + 1;
+                            delete viewport.height;
+                            viewport.dispatchEvent(new Event('resize'));
+                            return fits;
+                        }""")
                     page.locator("#search").fill("no-matching-story-987654321")
                     assert page.locator(".article-item:visible").count() == visible_before_search
                     page.wait_for_function("document.querySelector('#search-results').textContent.includes('没有找到匹配内容')")

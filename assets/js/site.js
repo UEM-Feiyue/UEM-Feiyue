@@ -336,21 +336,18 @@
     return pagefind;
   });
   const positionSearch = () => {
+    const top = searchOpen.getBoundingClientRect().bottom + 12;
+    dialog.style.setProperty('--search-top', Math.round(top) + 'px');
     if (mobile.matches) {
       const viewport = window.visualViewport;
-      const height = viewport?.height || innerHeight;
-      const offset = viewport?.offsetTop || 0;
-      const available = Math.max(120, height - 24);
-      dialog.style.setProperty('--search-top', Math.round(offset + Math.max(12, (height - Math.min(dialog.offsetHeight || 80, available)) / 2)) + 'px');
-      dialog.style.setProperty('--search-available', Math.round(available) + 'px');
+      const bottom = (viewport?.offsetTop || 0) + (viewport?.height || innerHeight);
+      dialog.style.setProperty('--search-available', Math.round(Math.max(54, bottom - top - 12)) + 'px');
       return;
     }
-    dialog.style.setProperty('--search-top', Math.round(searchOpen.getBoundingClientRect().bottom + 12) + 'px');
     dialog.style.removeProperty('--search-available');
   };
   const openSearch = () => {
     if (archive.hidden) return;
-    if (mobile.matches) searchOpen.scrollIntoView({block:'center', behavior:'instant'});
     positionSearch();
     dialog.showModal();
     search.focus({preventScroll:true});
@@ -361,6 +358,7 @@
   searchOpen.addEventListener('click', openSearch);
   window.addEventListener('resize', () => { if (dialog.open) positionSearch(); });
   window.visualViewport?.addEventListener('resize', () => { if (dialog.open) positionSearch(); });
+  window.visualViewport?.addEventListener('scroll', () => { if (dialog.open) positionSearch(); });
   dialog.addEventListener('close', () => {
     ++requestId;
     search.value = '';
