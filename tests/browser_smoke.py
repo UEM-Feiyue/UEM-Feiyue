@@ -283,10 +283,11 @@ def main():
                     page.locator("#body").fill("")
                     page.locator(".demo-actions button").filter(has_text="载入示例").click()
                     page.wait_for_function("document.querySelector('#body').value.startsWith('## ')")
-                    assert page.locator(".markdown-help").get_attribute("open") is not None
+                    assert page.locator(".markdown-help").get_attribute("open") is None
                     assert page.locator(".markdown-preview").is_hidden()
                     assert page.locator("#body").is_visible()
                     assert "Markdown" in page.locator(".markdown-help").inner_text()
+                    page.locator(".markdown-help summary").click()
                     assert "## 小标题" in page.locator(".markdown-help").inner_text()
                     page.locator("#body").fill("")
                     page.locator("#body").fill("## Heading\n\n**Test body**\n\n<script>window.__unsafe = true</script>")

@@ -148,9 +148,8 @@
             // The example is intentionally raw Markdown so beginners can inspect
             // syntax before switching to the rendered preview themselves.
             if (!bodyPreview.hidden) bodyPreviewButton.click();
-            guide.open = true;
             control.focus();
-            draftStatus.textContent = '已载入带有 Markdown 格式的示例；可查看下方语法说明，再自行点击「预览排版」。';
+            draftStatus.textContent = '已载入带有 Markdown 格式的示例；可自行查看语法说明或点击「预览排版」。';
           } catch { draftStatus.textContent = '示例加载失败，请稍后重试。'; }
         });
         clearBody.addEventListener('click', () => {
