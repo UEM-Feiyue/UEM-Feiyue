@@ -77,7 +77,7 @@ def main():
                             sessionStorage.setItem('outgoing-menu-state', JSON.stringify({
                                 reset: shell.classList.contains('nav-reset'),
                                 open: shell.classList.contains('menu-open'),
-                                panelOpen: menu.classList.contains('open'),
+                                panelVisible: getComputedStyle(menu).visibility === 'visible',
                                 inert: menu.inert,
                                 expanded: document.querySelector('#menu-toggle').getAttribute('aria-expanded'),
                                 transition: getComputedStyle(menu).transitionDuration
@@ -90,7 +90,7 @@ def main():
                         "() => JSON.parse(sessionStorage.getItem('outgoing-menu-state'))"
                     )
                     assert outgoing == {
-                        "reset": True, "open": False, "panelOpen": False,
+                        "reset": True, "open": False, "panelVisible": False,
                         "inert": True, "expanded": "false", "transition": "0s"
                     }, outgoing
                     assert page.locator(".mobile-brand-logo").is_visible()

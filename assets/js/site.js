@@ -153,7 +153,6 @@
   const setMenu = (open, restoreFocus = false) => {
     open = Boolean(open && mobile.matches);
     shell.classList.toggle('menu-open', open);
-    sidebar.classList.toggle('open', open);
     sidebar.inert = mobile.matches && !open;
     toggle.setAttribute('aria-expanded', String(open));
     toggle.setAttribute('aria-label', open ? '关闭导航' : '打开导航');
@@ -319,6 +318,13 @@
   const dialog = document.querySelector('#search-dialog');
   const search = document.querySelector('#search');
   const searchOpen = document.querySelector('.search-open');
+  const searchDesktopParent = searchOpen.parentElement;
+  const syncSearchPlacement = () => {
+    if (mobile.matches) toggle.before(searchOpen);
+    else searchDesktopParent.append(searchOpen);
+  };
+  syncSearchPlacement();
+  mobile.addEventListener('change', syncSearchPlacement);
   const results = document.querySelector('#search-results');
   const scrollHint = document.createElement('div');
   scrollHint.className = 'scroll-hint';
@@ -354,7 +360,6 @@
     requestAnimationFrame(positionSearch);
     syncScrollHint();
   };
-  searchOpen.hidden = false;
   searchOpen.addEventListener('click', openSearch);
   window.addEventListener('resize', () => { if (dialog.open) positionSearch(); });
   window.visualViewport?.addEventListener('resize', () => { if (dialog.open) positionSearch(); });
@@ -458,6 +463,7 @@
     document.querySelector('#home-intro').hidden = !isHome;
     document.querySelector('#archive-intro').hidden = isHome;
     archive.hidden = isHome;
+    searchOpen.hidden = isHome;
     const current = [...nav.querySelectorAll('[data-category]')].find(link => link.dataset.category === selected && selected !== 'all');
     activeCategory = current?.dataset.category || 'all';
     nav.querySelectorAll('[aria-current]').forEach(link => link.removeAttribute('aria-current'));

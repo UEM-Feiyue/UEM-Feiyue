@@ -256,6 +256,8 @@ def main():
                     page.locator("#year-options [data-value='all']").click()
                     assert page.locator("#year-filter").input_value() == "all"
                     visible_before_search = page.locator(".article-item:visible").count()
+                    assert page.locator('.search-open').evaluate("""el => el.parentElement === document.querySelector(
+                        innerWidth <= 900 ? '.topbar' : '.archive-intro')""")
                     page.locator(".search-open").click()
                     assert page.locator("#search-dialog").evaluate("el => el.open")
                     assert page.locator("#search").evaluate("el => document.activeElement === el")
@@ -547,6 +549,12 @@ def main():
             assert page.locator("#search-results li a").count() == 1
             page.locator("#search").fill("")
             assert page.locator("#search-results").is_hidden()
+            page.locator('.search-close').click()
+            page.evaluate('window.__searchNode = document.querySelector(".search-open")')
+            page.set_viewport_size({"width": 390, "height": 844})
+            assert page.locator('.topbar .search-open').evaluate('el => el === window.__searchNode')
+            page.set_viewport_size({"width": 901, "height": 844})
+            assert page.locator('.archive-intro .search-open').evaluate('el => el === window.__searchNode')
             context.close()
             # Mocked public mode: confirm the complete browser payload/feedback
             # without contacting Cloudflare or opening an actual GitHub Issue.
