@@ -1161,12 +1161,9 @@ a:is(:hover, :focus-visible) .link-arrow-left {
   transform: translateX(-3px) rotate(225deg);
 }
 
-.nav-contribute, .nav-community {
+.nav a:is(.nav-contribute, .nav-community) {
   position: relative;
   margin-top: 16px;
-}
-
-.nav-contribute {
   display: flex;
   align-items: center;
   justify-content: space-between;

@@ -74,7 +74,7 @@ def shared_chrome(source, page, prefix="./", category=None):
         selected = ' aria-current="page"' if category == item["id"] else ''
         links.append(f'<a href="{prefix}?category={quote(item["id"])}" data-category="{html.escape(item["id"], quote=True)}" data-category-label="{html.escape(item["label"], quote=True)}" data-category-description="{html.escape(item["description"], quote=True)}"{selected}>{html.escape(item["label"])}</a>')
     links.append(f'<a href="{prefix}submit.html" class="nav-contribute"' + (' aria-current="page"' if page == "submit" else '') + '>投稿分享 <span class="link-arrow" aria-hidden="true"></span></a>')
-    links.append(f'<a href="{prefix}community.html" class="nav-community"' + (' aria-current="page"' if page == "community" else '') + '>共建与联系</a>')
+    links.append(f'<a href="{prefix}community.html" class="nav-community"' + (' aria-current="page"' if page == "community" else '') + '>共建与联系 <span class="link-arrow" aria-hidden="true"></span></a>')
     sidebar = re.sub(r'(<nav class="nav"[^>]*>).*?(</nav>)', lambda m: m[1] + ''.join(links) + m[2], sidebar, flags=re.S)
     header = re.search(r'<header class="topbar"[^>]*>.*?</header>', home, re.S)[0]
     footer = re.search(r'<footer class="site-footer".*?</footer>', home, re.S)[0]
