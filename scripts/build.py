@@ -59,8 +59,7 @@ def parse(path):
 
 def display_title(meta):
     """One title convention shared by archive cards and article pages."""
-    parts = [str(meta["author"]).strip(), str(meta.get("destination") or "").strip()]
-    title = " — ".join(part for part in parts if part)
+    title = str(meta.get("destination") or "").strip()
     program = str(meta.get("program") or "").strip()
     return title + (" · " + program if program else "")
 
@@ -99,9 +98,9 @@ def render(meta, body, url):
     # Escape inline HTML before Markdown conversion; sanitize generated HTML too.
     rendered = markdown.markdown(html.escape(body), extensions=["extra", "toc", "sane_lists", "pymdownx.tilde", "pymdownx.tasklist"], extension_configs={"toc": {"slugify": slugify_unicode}})
     clean = bleach.clean(rendered, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRS, protocols=["http", "https", "mailto"], strip=True)
-    byline = " · ".join(html.escape(display_year(meta[k]) if k == "year" else str(meta[k])) for k in ("author", "year", "major") if meta.get(k))
+    byline = " · ".join(html.escape(display_year(meta[k]) if k == "year" else str(meta[k])) for k in ("author", "year", "college", "major") if meta.get(k))
     headings = re.findall(r'<h([23]) id="([^"]+)">(.+?)</h[23]>', clean)
-    toc = '<details class="article-toc"><summary>本页目录</summary><ul>' + ''.join(f'<li class="toc-depth-{level}"><a href="#{html.escape(anchor, quote=True)}">{text}</a></li>' for level, anchor, text in headings) + '</ul></details>' if len(headings) >= 2 else ''
+    toc = '<details class="article-toc"><summary>本页目录</summary><div class="article-toc-panel"><div class="article-toc-clip"><ul>' + ''.join(f'<li class="toc-depth-{level}"><a href="#{html.escape(anchor, quote=True)}">{text}</a></li>' for level, anchor, text in headings) + '</ul></div></div></details>' if len(headings) >= 2 else ''
     demo = '<span class="demo-badge">演示</span>' if meta.get('demo') is True else ''
     contact = f'<aside class="article-contact"><strong>联系作者</strong><p>{html.escape(str(meta["contact"]))}</p></aside>' if meta.get("contact") else ""
     source = shared_chrome((ROOT / "index.html").read_text(encoding="utf-8"), "article", "../", meta["category"])
@@ -110,7 +109,7 @@ def render(meta, body, url):
     source = re.sub(r'<title>.*?</title>', lambda _: f'<title>{title} · UEM Feiyue</title>', source, count=1, flags=re.S)
     description = html.escape(str(meta.get("excerpt") or display_title(meta)), quote=True)
     source = re.sub(r'<meta name="description"[^>]*>', lambda _: f'<meta name="description" content="{description}">', source, count=1)
-    content = f'<article class="article-page"><a class="article-back" href="../?category={quote(str(meta["category"]))}"><span class="link-arrow link-arrow-left" aria-hidden="true"></span> 返回{html.escape(CATEGORIES[meta["category"]])}</a><h1>{title}</h1>{demo}<p class="article-byline">{byline}</p>{toc}<div class="article-body" data-pagefind-body>{clean}</div>{contact}</article>'
+    content = f'<article class="article-page"><a class="article-back" href="../?category={quote(str(meta["category"]))}"><span class="link-arrow link-arrow-left" aria-hidden="true"></span> 返回{html.escape(CATEGORIES[meta["category"]])}</a><h1 data-pagefind-meta="title">{title}</h1>{demo}<p class="article-byline" data-pagefind-meta="byline">{byline}</p>{toc}<div class="article-body" data-pagefind-body>{clean}</div>{contact}</article>'
     return re.sub(r'(<main[^>]*>).*?(</main>)', lambda m: m[1] + content + m[2], source, count=1, flags=re.S)
 
 
@@ -120,8 +119,8 @@ def render_home(entries):
     for entry in entries:
         badge = '<span class="demo-badge">演示</span>' if entry["demo"] else ''
         esc = lambda value: html.escape(str(value), quote=True)
-        label = ' · '.join(filter(None, (CATEGORIES[entry["category"]], entry["year"] + ' 届', entry["major"])))
-        cards.append(f'<article class="article-item" data-category="{esc(entry["category"])}" data-year="{esc(entry["year"])}" data-demo="{str(entry["demo"]).lower()}">{badge}<p class="article-meta">{html.escape(label)}</p><h3><a href="./{esc(entry["url"])}">{html.escape(entry["title"])}</a></h3><a class="article-more" href="./{esc(entry["url"])}">阅读全文<span class="link-arrow"></span></a></article>')
+        label = ' · '.join(filter(None, (entry["year"] + ' 届', entry["college"], entry["major"])))
+        cards.append(f'<article class="article-item" data-category="{esc(entry["category"])}" data-year="{esc(entry["year"])}" data-demo="{str(entry["demo"]).lower()}">{badge}<h3><a href="./{esc(entry["url"])}">{esc(entry["author"])} — {esc(entry["title"])}</a></h3><p class="article-meta">{esc(label)}</p><a class="article-more" href="./{esc(entry["url"])}">阅读全文<span class="link-arrow"></span></a></article>')
     source = re.sub(r'(<div id="articles"[^>]*>).*?(</div>)', lambda m: m[1] + ''.join(cards) + m[2], source, count=1, flags=re.S)
     years = ''.join(f'<option value="{html.escape(year, quote=True)}">{html.escape(year)}</option>' for year in sorted({entry["year"] for entry in entries}, reverse=True))
     source = re.sub(r'(<select\b[^>]*\bid="year-filter"[^>]*>).*?(</select>)', lambda m: m[1] + '<option value="all">全部届次</option>' + years + m[2], source, count=1, flags=re.S)
@@ -152,6 +151,7 @@ def main():
             "category": meta["category"],
             "author": str(meta["author"]),
             "year": str(meta["year"]),
+            "college": str(meta.get("college", "")),
             "major": str(meta.get("major", "")),
             "program": str(meta.get("program", "")),
             "destination": str(meta.get("destination", "")),

@@ -88,6 +88,8 @@ function issueFor(record) {
     '**方向：** ' + category.label,
     '**作者：** ' + record.author,
     '**毕业届次：** ' + record.year,
+    '**学院：** ' + record.college,
+    '**专业：** ' + record.major,
     '**去向单位：** ' + record.destination,
     '**专业 / 项目 / 岗位：** ' + (record.program || '未填写'), '',
     '### 经历正文', quote(record.body), '',

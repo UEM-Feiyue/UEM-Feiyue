@@ -73,7 +73,7 @@ def import_event(event, root=ROOT):
     target = root / "content" / "community" / ("issue-" + str(issue["number"]) + ".md")
     if target.exists():
         return target, False
-    frontmatter = {name: record[name] for name in ("category", "author", "year", "destination", "program", "contact") if record[name]}
+    frontmatter = {name: record[name] for name in ("category", "author", "year", "college", "major", "destination", "program", "contact") if record[name]}
     frontmatter["source_issue"] = issue["number"]
     target.parent.mkdir(parents=True, exist_ok=True)
     content = "---\n" + yaml.safe_dump(frontmatter, allow_unicode=True, sort_keys=False) + "---\n" + record["body"].strip() + "\n"

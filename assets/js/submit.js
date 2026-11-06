@@ -23,6 +23,7 @@
     }
     category.required = true;
     const controls = new Map();
+    let educationFields = null;
     let bodyPreview = null;
     let bodyPreviewButton = null;
     for (const field of schema.fields) {
@@ -187,7 +188,17 @@
         guidance.className = 'field-hint';
         wrapper.append(guidance);
       }
-      fields.append(wrapper);
+      if (field.group) {
+        if (!educationFields) {
+          educationFields = make('fieldset');
+          educationFields.className = 'education-fields';
+          educationFields.append(make('legend', field.group));
+          fields.append(educationFields);
+        }
+        educationFields.append(wrapper);
+      } else {
+        fields.append(wrapper);
+      }
       controls.set(field.name, control);
     }
     // Prefer CSS field-sizing: content; fallback to scrollHeight for WebKit
@@ -292,7 +303,13 @@
         item.append(link);
         list.append(item);
       }
-      nav.append(list);
+      const panel = make('div');
+      panel.className = 'article-toc-panel';
+      const clip = make('div');
+      clip.className = 'article-toc-clip';
+      clip.append(list);
+      panel.append(clip);
+      nav.append(panel);
       return nav;
     };
     button.addEventListener('click', () => {
@@ -307,12 +324,12 @@
       const author = String(data.get('author') || '').trim();
       const destination = String(data.get('destination') || '').trim();
       const program = String(data.get('program') || '').trim();
-      const title = author + ' — ' + destination + (program ? ' · ' + program : '');
+      const title = destination + (program ? ' · ' + program : '');
       previewText.replaceChildren();
       const back = make('span', '返回' + selected.label);
       back.className = 'article-back';
       previewText.append(back, make('h1', title));
-      const byline = make('p', [author, String(data.get('year')).trim() + ' 届'].join(' · '));
+      const byline = make('p', [author, String(data.get('year')).trim() + ' 届', String(data.get('college') || '').trim(), String(data.get('major') || '').trim()].filter(Boolean).join(' · '));
       byline.className = 'article-byline';
       previewText.append(byline);
       const body = make('div');
@@ -321,6 +338,7 @@
       const toc = buildArticleToc(body);
       if (toc) previewText.append(toc);
       previewText.append(body);
+      if (toc) window.initArticleToc?.(previewText);
       const contact = String(data.get('contact') || '').trim();
       if (contact) {
         const aside = make('aside');

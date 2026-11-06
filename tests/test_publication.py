@@ -13,7 +13,7 @@ spec.loader.exec_module(module)
 
 
 def fixture():
-    record = {"version": 1, "category": "career", "author": "张同学", "year": "2026",
+    record = {"version": 1, "category": "career", "author": "张同学", "year": "2026", "college": "某学院", "major": "某专业",
               "destination": "某企业", "program": "产品经理", "body": "## 我的经历\n\n具体经历。",
               "contact": ""}
     payload = base64.urlsafe_b64encode(json.dumps(record, ensure_ascii=False).encode()).decode().rstrip("=")
@@ -39,6 +39,8 @@ class PublicationTests(unittest.TestCase):
             self.assertTrue(created)
             self.assertEqual(path.name, "issue-57.md")
             self.assertIn("source_issue: 57", path.read_text())
+            self.assertIn("college: 某学院", path.read_text(encoding="utf-8"))
+            self.assertIn("major: 某专业", path.read_text(encoding="utf-8"))
             self.assertIn("## 我的经历", path.read_text())
             self.assertFalse(module.import_event(event, Path(directory))[1])
 

@@ -40,31 +40,110 @@
   });
   window.addEventListener('pageshow', syncThemeControls);
   syncThemeControls();
-  // Native in-page directory: keyboard-accessible disclosure and active heading.
-  const contents = document.querySelector('details.article-toc');
-  if (contents) {
+  // Match the personal site's article directory while retaining native details.
+  const initArticleToc = article => {
+    const contents = article.querySelector('details.article-toc');
+    if (!contents) return;
+    const panel = contents.querySelector('.article-toc-panel');
+    const summary = contents.querySelector('summary');
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+    contents.classList.add('is-enhanced');
+    let closing = false;
+    let navigating = false;
+    let pendingTarget = null;
+    summary.addEventListener('click', event => {
+      event.preventDefault();
+      navigating = false;
+      if (reducedMotion.matches) {
+        contents.open = !contents.open;
+        contents.classList.toggle('is-open', contents.open);
+        return;
+      }
+      if (closing) closing = false;
+      if (contents.open && contents.classList.contains('is-open')) {
+        contents.classList.remove('is-open');
+        closing = true;
+      } else {
+        contents.open = true;
+        requestAnimationFrame(() => contents.classList.add('is-open'));
+      }
+    });
+    panel.addEventListener('transitionend', event => {
+      if (event.target !== panel || event.propertyName !== 'grid-template-rows') return;
+      if (closing) {
+        contents.open = false;
+        closing = false;
+      } else if (pendingTarget) {
+        const target = pendingTarget;
+        pendingTarget = null;
+        scrollToTarget(target);
+      } else if (contents.open && !reducedMotion.matches && !navigating) {
+        const overflow = contents.getBoundingClientRect().bottom - (innerHeight - 24);
+        if (overflow > 0) scrollBy({top: overflow, behavior: 'smooth'});
+      }
+    });
     const links = [...contents.querySelectorAll('a[href^="#"]')];
     const headings = links.map(link => document.getElementById(decodeURIComponent(link.hash.slice(1))));
+    let clickedTarget = null;
+    const scrollToTarget = target => {
+      const offset = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+      const top = Math.max(0, Math.min(target.getBoundingClientRect().top + scrollY - offset, document.documentElement.scrollHeight - innerHeight));
+      clickedTarget = {target, top, settled: false};
+      scrollTo({top, behavior: reducedMotion.matches ? 'instant' : 'smooth'});
+      update();
+    };
+    links.forEach(link => link.addEventListener('click', event => {
+      const target = document.getElementById(decodeURIComponent(link.hash.slice(1)));
+      if (!target) return;
+      event.preventDefault();
+      navigating = true;
+      history.pushState(null, '', link.hash);
+      if (panel.getAnimations().some(animation => animation.playState === 'running')) {
+        pendingTarget = target;
+      } else {
+        scrollToTarget(target);
+      }
+    }));
     const update = () => {
-      const probe = scrollY + 110;
+      const probe = scrollY + (parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0) + 28;
       let active = 0;
       headings.forEach((heading, i) => {
         if (heading && heading.getBoundingClientRect().top + scrollY <= probe) active = i;
       });
+      if (innerHeight + scrollY >= document.documentElement.scrollHeight - 6) active = headings.length - 1;
+      if (clickedTarget) {
+        if (Math.abs(scrollY - clickedTarget.top) <= 2) clickedTarget.settled = true;
+        else if (clickedTarget.settled) clickedTarget = null;
+        if (clickedTarget) active = headings.indexOf(clickedTarget.target);
+      }
       links.forEach((link, i) => {
         link.classList.toggle('is-active', i === active);
         if (i === active) link.setAttribute('aria-current', 'location');
         else link.removeAttribute('aria-current');
       });
     };
+    const releaseTarget = () => { clickedTarget = null; update(); };
+    window.addEventListener('wheel', releaseTarget, {passive:true});
+    window.addEventListener('touchstart', releaseTarget, {passive:true});
+    document.addEventListener('keydown', event => {
+      if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) releaseTarget();
+    });
     let pending = false;
     window.addEventListener('scroll', () => {
       if (pending) return;
       pending = true;
       requestAnimationFrame(() => { pending = false; update(); });
     }, {passive:true});
+    window.addEventListener('resize', releaseTarget, {passive:true});
+    window.addEventListener('hashchange', () => {
+      const target = headings.find(heading => heading?.id === decodeURIComponent(location.hash.slice(1)));
+      clickedTarget = target ? {target, top: scrollY, settled: true} : null;
+      update();
+    });
     update();
-  }
+  };
+  window.initArticleToc = initArticleToc;
+  document.querySelectorAll('.article-page:not(#preview-text)').forEach(initArticleToc);
 
   const sidebar = document.querySelector('#sidebar');
   const toggle = document.querySelector('#menu-toggle');
@@ -311,24 +390,32 @@
     try {
       const pagefind = await loadSearch();
       const found = await pagefind.debouncedSearch(query);
-      if (id !== requestId || !found) return;
-      const pages = await Promise.all(found.results.map(item => item.data()));
+      if (id !== requestId) return;
+      const pages = await Promise.all((found?.results || []).map(item => item.data()));
       if (id !== requestId) return;
       const titleQuery = query.normalize('NFKC').toLocaleLowerCase();
       const exactCjkPhrase = /^[\p{Script=Han}]{2,}$/u.test(query);
-      pages.sort((a, b) => Number(b.meta.title.normalize('NFKC').toLocaleLowerCase().includes(titleQuery)) -
-        Number(a.meta.title.normalize('NFKC').toLocaleLowerCase().includes(titleQuery)));
+      const indexed = new Set(pages.map(page => new URL(page.url, location.href).pathname));
+      for (const [path, card] of cardByPath) {
+        if (card.hidden || indexed.has(path)) continue;
+        const title = card.querySelector('h3 a').textContent;
+        const byline = card.querySelector('.article-meta').textContent;
+        if (!(title + ' ' + byline).normalize('NFKC').toLocaleLowerCase().includes(titleQuery)) continue;
+        pages.push({url: path, meta: {title, byline}, content: '', excerpt: ''});
+      }
+      pages.sort((a, b) => Number((b.meta.title + ' ' + (b.meta.byline || '')).normalize('NFKC').toLocaleLowerCase().includes(titleQuery)) -
+        Number((a.meta.title + ' ' + (a.meta.byline || '')).normalize('NFKC').toLocaleLowerCase().includes(titleQuery)));
       const list = document.createElement('ul');
       for (const page of pages) {
         const card = cardByPath.get(new URL(page.url, location.href).pathname);
         if (!card || card.hidden) continue;
-        if (exactCjkPhrase && !page.meta.title.includes(query) && !page.content.includes(query)) continue;
+        if (exactCjkPhrase && !card.querySelector('h3 a').textContent.includes(query) && !(page.meta.byline || '').includes(query) && !page.content.includes(query)) continue;
         const row = document.createElement('li');
         const link = document.createElement('a');
         link.href = card.querySelector('h3 a').href;
         const title = document.createElement('span');
         title.className = 'search-title';
-        highlight(title, page.meta.title, query);
+        highlight(title, card.querySelector('h3 a').textContent, query);
         link.append(title);
         const position = exactCjkPhrase ? page.content.indexOf(query) : -1;
         if (position >= 0 || page.excerpt?.includes('<mark>')) {

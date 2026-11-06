@@ -2,6 +2,8 @@
 category: overseas
 author: 陈同学
 year: '2026'
+college: 某学院
+major: 某专业
 destination: 香港某高校
 program: 理工类硕士项目
 excerpt: 申请季里最难的不是填网申，而是把课程、项目和未来打算整理成一条能说清楚的主线。

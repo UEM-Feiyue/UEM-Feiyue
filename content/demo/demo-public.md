@@ -2,6 +2,8 @@
 category: public
 author: 许同学
 year: '2026'
+college: 某学院
+major: 某专业
 destination: 某地事业单位招录方向
 program: 综合管理岗位
 excerpt: 报名条件、笔试节奏和面试表达，我最想提醒的是先看清岗位，再决定如何投入时间。

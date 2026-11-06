@@ -2,6 +2,8 @@
 category: kaoyan
 author: 林同学
 year: '2026'
+college: 某学院
+major: 某专业
 destination: 某理工类高校
 program: 安全工程相关专业
 excerpt: 从择校犹豫到复习计划落地，我最有感触的是把信息焦虑变成每周都能执行的小任务。

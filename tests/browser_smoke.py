@@ -34,7 +34,7 @@ def main():
     try:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch()
-            for width in (320, 390, 900, 901, 1440):
+            for width in (320, 390, 900, 901, 1440, 1600):
                 for theme in ("light", "dark"):
                     context = browser.new_context(viewport={"width": width, "height": 900}, reduced_motion="reduce")
                     context.add_init_script(f"localStorage.setItem('uem-theme', '{theme}')")
@@ -43,6 +43,9 @@ def main():
                     page.on("pageerror", lambda error: errors.append(str(error)))
                     page.goto(base + PREFIX + "/", wait_until="networkidle")
                     assert page.locator("h1:visible").count() == 1
+                    assert page.locator(".article-item .article-meta").first.inner_text().endswith("某学院 · 某专业")
+                    assert page.locator(".article-item h3").first.inner_text().startswith(articles[0]["author"] + " — ")
+                    assert page.locator(".article-item").first.evaluate("el => el.querySelector('h3').compareDocumentPosition(el.querySelector('.article-meta')) & Node.DOCUMENT_POSITION_FOLLOWING")
                     # A bounded image banner retains aspect ratio at desktop/mobile sizes.
                     background = page.evaluate("""() => {
                         const container = document.querySelector('.page');
@@ -252,16 +255,28 @@ def main():
                     page.locator("#search").fill("no-matching-story-987654321")
                     assert page.locator(".article-item:visible").count() == visible_before_search
                     page.wait_for_function("document.querySelector('#search-results').textContent.includes('没有找到匹配内容')")
-                    page.locator("#search").fill(articles[0]["author"])
+                    page.locator("#search").fill("简历修改")
                     page.locator("#search-results li a").first.wait_for(state="visible")
                     assert page.locator("#search-results .search-summary").inner_text().startswith("找到 ")
-                    assert page.locator("#search-results .search-title mark").count() > 0
+                    assert page.locator("#search-results .search-match mark").count() > 0
                     page.locator("#search-results li a").first.click()
                     page.wait_for_selector(".article-body")
+                    assert articles[0]["author"] not in page.locator(".article-page > h1").inner_text()
+                    if width == 1600:
+                        assert page.evaluate("""() => {
+                            const main = document.querySelector('main.content');
+                            const article = document.querySelector('.article-page');
+                            const box = main.getBoundingClientRect();
+                            const content = article.getBoundingClientRect();
+                            const style = getComputedStyle(main);
+                            return Math.abs(content.left - box.left - parseFloat(style.paddingLeft)) < 2 &&
+                                Math.abs(content.right - box.right + parseFloat(style.paddingRight)) < 2;
+                        }""")
                     assert page.locator(".demo-badge").is_visible() == articles[0]["demo"]
                     assert page.locator(".article-toc").count() <= 1
                     if page.locator(".article-toc").count():
                         assert page.locator(".article-toc").evaluate("el => el.tagName") == "DETAILS"
+                        assert page.locator(".article-toc-side").count() == 0
                         page.locator(".article-toc summary").click()
                         assert page.locator(".article-toc").get_attribute("open") is not None
                         assert page.locator(".article-toc a").first.is_visible()
@@ -296,6 +311,11 @@ def main():
                     page.locator("#year").fill("abcd")
                     assert not page.locator("#year").evaluate("el => el.checkValidity()")
                     page.locator("#year").fill("2026")
+                    assert page.locator(".education-fields legend").inner_text() == "在校信息"
+                    assert not page.locator("#college").evaluate("el => el.checkValidity()")
+                    page.locator("#college").fill("某学院")
+                    assert not page.locator("#major").evaluate("el => el.checkValidity()")
+                    page.locator("#major").fill("某专业")
                     page.locator("#destination").fill("Example institution")
                     assert page.locator("#year").evaluate("el => el.getBoundingClientRect().width < 120")
                     assert "hello@example.com" in page.locator("#contact").get_attribute("placeholder")
@@ -316,6 +336,7 @@ def main():
                     page.locator("#contact").fill("do-not-save@example.invalid")
                     page.locator("#preview-button").click()
                     assert page.locator("#preview").is_visible()
+                    assert page.locator("#preview .article-body strong").count() == 1, page.locator("#preview-text").inner_html()
                     assert page.locator("#preview .article-body strong").inner_text() == "Test body"
                     assert not page.evaluate("Boolean(window.__unsafe)")
                     assert "公开 GitHub Issue" in page.locator(".notice").inner_text()
@@ -414,6 +435,8 @@ def main():
             page.locator("#category").select_option("kaoyan")
             page.locator("#author").fill("林同学")
             page.locator("#year").fill("2026")
+            page.locator("#college").fill("某学院")
+            page.locator("#major").fill("某专业")
             page.locator("#destination").fill("某理工类高校")
             page.locator("#program").fill("安全工程相关专业")
             page.locator("#body").fill(demo_body)
@@ -433,10 +456,15 @@ def main():
             page = context.new_page()
             page.goto(base + "/?view=all", wait_until="networkidle")
             page.locator(".search-open").click()
+            page.locator("#search").fill("理工")
+            page.wait_for_function("document.querySelectorAll('#search-results li a').length === 2")
+            page.locator("#search").fill("林同学")
+            page.wait_for_function("document.querySelectorAll('#search-results li a').length === 1")
+            assert page.locator("#search-results .search-title mark").count() == 1
             page.locator("#search").fill("推荐信")
             page.locator("#search-results li a").first.wait_for(state="visible")
             assert page.locator("#search-results li a").count() == 1
-            assert "陈同学" in page.locator("#search-results li a").inner_text()
+            assert "香港某高校" in page.locator("#search-results li a").inner_text()
             assert "推荐信" in page.locator("#search-results .search-match").inner_text()
             assert page.locator("#search-results .search-match mark").count() == 1
             assert page.locator("#search-results .search-title mark").count() == 0
@@ -477,6 +505,8 @@ def main():
             page.locator("#category").select_option("career")
             page.locator("#author").fill("测试同学")
             page.locator("#year").fill("2026")
+            page.locator("#college").fill("某学院")
+            page.locator("#major").fill("某专业")
             page.locator("#destination").fill("某公司")
             page.locator("#body").fill("## 完整经历\\n\\n测试内容")
             page.wait_for_function("!document.querySelector('#submit-button').disabled", timeout=10000)
@@ -486,6 +516,8 @@ def main():
             assert page.locator("#submit-button").inner_text() == "投稿分享"
             assert len(submissions) == 1
             assert submissions[0]["category"] == "career"
+            assert submissions[0]["college"] == "某学院"
+            assert submissions[0]["major"] == "某专业"
             assert submissions[0]["turnstileToken"] == "test-token"
             assert page.locator("#author").input_value() == ""
             context.close()
@@ -508,6 +540,26 @@ def main():
                 preview_server.shutdown()
                 preview_worker.join()
                 preview_server.server_close()
+            context = browser.new_context(viewport={"width": 390, "height": 844})
+            page = context.new_page()
+            page.goto(base + "/articles/demo-postgraduate.html", wait_until="networkidle")
+            toc = page.locator(".article-toc")
+            toc.locator("summary").click()
+            assert toc.get_attribute("open") is not None
+            assert toc.locator(".article-toc-panel").evaluate("el => getComputedStyle(el).transitionDuration") != "0s"
+            page.wait_for_timeout(300)
+            toc.locator("summary").click()
+            page.wait_for_function("!document.querySelector('.article-toc').open")
+            toc.locator("summary").click()
+            toc.locator("a").last.click()
+            assert toc.locator("a.is-active").last.count() == 1
+            page.wait_for_function("""() => {
+                const link = [...document.querySelectorAll('.article-toc a')].at(-1);
+                const target = document.getElementById(decodeURIComponent(link.hash.slice(1)));
+                const top = Math.min(target.getBoundingClientRect().top + scrollY - 24, document.documentElement.scrollHeight - innerHeight);
+                return Math.abs(scrollY - top) < 4;
+            }""")
+            context.close()
             browser.close()
     finally:
         server.shutdown()

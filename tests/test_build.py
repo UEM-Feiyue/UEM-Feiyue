@@ -123,13 +123,13 @@ class SubmissionBuildTests(unittest.TestCase):
         schema = json.loads((ROOT / "data/schema.json").read_text(encoding="utf-8"))
         names = {field["name"] for field in schema["fields"]}
         self.assertNotIn("title", names)
-        self.assertTrue({"author", "year", "destination", "program", "body"} <= names)
+        self.assertTrue({"author", "year", "college", "major", "destination", "program", "body"} <= names)
 
     def test_title_auto_generated(self):
         meta = {"author": "张同学", "destination": "香港中文大学", "program": "MSc@CS"}
-        self.assertEqual(build.display_title(meta), "张同学 — 香港中文大学 · MSc@CS")
+        self.assertEqual(build.display_title(meta), "香港中文大学 · MSc@CS")
         meta.pop("program")
-        self.assertEqual(build.display_title(meta), "张同学 — 香港中文大学")
+        self.assertEqual(build.display_title(meta), "香港中文大学")
 
     def test_render_heading_table_and_sanitize(self):
         meta = {"category": "overseas", "author": "张同学", "year": "2026", "destination": "香港中文大学"}
@@ -142,7 +142,7 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertNotIn("<script>alert(1)</script>", page)
 
     def test_schema_required_fields_and_limits_are_enforced_before_publication(self):
-        meta = {"category": "career", "author": "Test author", "year": "2026", "destination": "Example"}
+        meta = {"category": "career", "author": "Test author", "year": "2026", "college": "Example college", "major": "Example major", "destination": "Example"}
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "test.md"
             for field in build.SCHEMA["fields"]:

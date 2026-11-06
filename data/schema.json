@@ -32,7 +32,8 @@
     },
     {
       "name": "year",
-      "label": "本科毕业届次",
+      "label": "毕业届次",
+      "group": "在校信息",
       "type": "text",
       "required": true,
       "maxLength": 4,
@@ -40,7 +41,25 @@
       "inputMode": "numeric",
       "pattern": "[0-9]{4}",
       "suffix": "届",
-      "hint": "填写四位本科毕业年份，例如 2026 届。"
+      "hint": "填写四位毕业年份，例如 2026 届。"
+    },
+    {
+      "name": "college",
+      "label": "学院",
+      "group": "在校信息",
+      "type": "text",
+      "required": true,
+      "maxLength": 100,
+      "placeholder": "例如 应急管理学院"
+    },
+    {
+      "name": "major",
+      "label": "专业",
+      "group": "在校信息",
+      "type": "text",
+      "required": true,
+      "maxLength": 100,
+      "placeholder": "例如 安全工程"
     },
     {
       "name": "destination",

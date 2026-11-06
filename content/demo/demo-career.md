@@ -2,6 +2,8 @@
 category: career
 author: 周同学
 year: '2026'
+college: 某学院
+major: 某专业
 destination: 某智能制造企业
 program: 项目运营方向
 excerpt: 从第一版简历没人回复，到逐渐学会用项目细节解释自己的能力，我的求职准备经历了几次转弯。
