@@ -212,6 +212,15 @@ def main():
                     assert page.evaluate("window.__sameDocument")
                     assert "view=all" in page.url
                     assert page.locator(".article-item:visible").count() == len(articles)
+                    assert page.locator('#stories-heading').evaluate(
+                        "el => document.activeElement === el && getComputedStyle(el).outlineStyle === 'none'"
+                    )
+                    if width == 390 and theme == "dark":
+                        page.locator('.mobile-brand').click()
+                        assert page.locator('#hero-title').evaluate(
+                            "el => document.activeElement === el && getComputedStyle(el).outlineStyle === 'none'"
+                        )
+                        page.locator('#home-intro a').filter(has_text='浏览').first.click()
                     if width in (390, 1440) and theme == "light":
                         page.evaluate("scrollTo(0, document.body.scrollHeight)")
                         assert page.evaluate("scrollY > 0")

@@ -1087,6 +1087,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   margin: 8px 0;
 }
 
+.home-intro h1:focus, .archive-intro h1:focus {
+  outline: none;
+}
+
 .archive-intro .lead {
   font-size: 15px;
   margin: 0;
