@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import sys
 from threading import Thread
+import time
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -357,6 +358,26 @@ def main():
                     print(f"UEM browser passed: {width}px, {theme}")
             context = browser.new_context(reduced_motion="no-preference")
             page = context.new_page()
+            page.add_init_script("""(() => {
+                const capture = () => {
+                    const nav = document.querySelector('#category-nav');
+                    const intro = document.querySelector('#archive-intro');
+                    if (!nav || !intro) return requestAnimationFrame(capture);
+                    window.__firstFrame = {
+                        active: nav.querySelector('[aria-current="page"]')?.dataset.category,
+                        homeHidden: document.querySelector('#home-intro').hidden,
+                        archiveHidden: intro.hidden,
+                        heading: document.querySelector('#stories-heading').textContent
+                    };
+                };
+                requestAnimationFrame(capture);
+            })();""")
+            page.route("**/assets/js/site.js", lambda route: (time.sleep(0.4), route.continue_()))
+            page.goto(base + "/?category=kaoyan", wait_until="networkidle")
+            assert page.evaluate("window.__firstFrame") == {
+                "active": "kaoyan", "homeHidden": True,
+                "archiveHidden": False, "heading": "考研经历"
+            }
             errors = []
             page.on("pageerror", lambda error: errors.append(str(error)))
             page.goto(base + "/?view=all", wait_until="networkidle")
