@@ -74,12 +74,13 @@ def shared_chrome(source, page, prefix="./", category=None):
         selected = ' aria-current="page"' if category == item["id"] else ''
         links.append(f'<a href="{prefix}?category={quote(item["id"])}" data-category="{html.escape(item["id"], quote=True)}" data-category-label="{html.escape(item["label"], quote=True)}" data-category-description="{html.escape(item["description"], quote=True)}"{selected}>{html.escape(item["label"])}</a>')
     links.append(f'<a href="{prefix}submit.html" class="nav-contribute"' + (' aria-current="page"' if page == "submit" else '') + '>投稿分享 <span class="link-arrow" aria-hidden="true"></span></a>')
+    links.append(f'<a href="{prefix}community.html" class="nav-community"' + (' aria-current="page"' if page == "community" else '') + '>共建与联系</a>')
     sidebar = re.sub(r'(<nav class="nav"[^>]*>).*?(</nav>)', lambda m: m[1] + ''.join(links) + m[2], sidebar, flags=re.S)
     header = re.search(r'<header class="topbar"[^>]*>.*?</header>', home, re.S)[0]
     footer = re.search(r'<footer class="site-footer".*?</footer>', home, re.S)[0]
     footer_links = f'<a href="{prefix}?view=all">全部经历</a>' + ''.join(
         f'<a href="{prefix}?category={quote(item["id"])}">{html.escape(item["label"])}</a>' for item in SCHEMA["categories"])
-    footer_links += f'<a href="{prefix}submit.html">投稿分享</a>'
+    footer_links += f'<a href="{prefix}submit.html">投稿分享</a><a href="{prefix}community.html">共建与联系</a>'
     footer = re.sub(r'(<nav class="footer-links"[^>]*>).*?(</nav>)', lambda m: m[1] + footer_links + m[2], footer, flags=re.S)
     for pattern, fragment in ((r'<aside class="sidebar".*?</aside>', sidebar),
                               (r'<header class="topbar"[^>]*>.*?</header>', header),
@@ -168,6 +169,8 @@ def main():
     (ROOT / "index.html").write_text(render_home(entries), encoding="utf-8")
     submission = (ROOT / "submit.html").read_text(encoding="utf-8")
     (ROOT / "submit.html").write_text(shared_chrome(submission, "submit"), encoding="utf-8")
+    community = (ROOT / "community.html").read_text(encoding="utf-8")
+    (ROOT / "community.html").write_text(shared_chrome(community, "community"), encoding="utf-8")
     print(f"Generated {len(entries)} articles")
 
 
