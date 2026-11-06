@@ -1587,14 +1587,6 @@ proportions; no composition, mask, crop or duplicate seal. */
   transform: translateY(-7px) rotate(-45deg);
   }
 
-  .shell.menu-open::before {
-  content: "";
-  position: fixed;
-  inset: var(--mobile-header-height) 0 0;
-  z-index: 38;
-  background: rgba(5,16,31,.4);
-  }
-
   .sidebar {
   position: fixed;
   z-index: 45;

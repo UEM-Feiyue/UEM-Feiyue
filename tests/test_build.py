@@ -25,7 +25,7 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertNotIn("@view-transition{navigation:auto}", stylesheet)
         self.assertIn("position:sticky;top:0;z-index:50", stylesheet)
         self.assertIn("--mobile-header-height:72px", stylesheet)
-        self.assertIn(".shell.menu-open::before", stylesheet)
+        self.assertNotIn(".shell.menu-open::before", stylesheet)
         self.assertRegex(stylesheet, r"body\{[^}]*background:var\(--bg\)")
         self.assertNotIn("background-attachment:fixed", stylesheet)
         self.assertNotIn(".page::before{", stylesheet)

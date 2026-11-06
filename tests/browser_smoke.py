@@ -166,6 +166,7 @@ def main():
                         page.locator("#menu-toggle").click()
                         assert page.locator("#menu-toggle").get_attribute("aria-expanded") == "true"
                         assert page.locator(".shell").evaluate("el => el.classList.contains('menu-open')")
+                        assert page.locator(".shell").evaluate("el => getComputedStyle(el, '::before').content === 'none'")
                         assert page.locator("#sidebar").evaluate("el => getComputedStyle(el).position === 'fixed'")
                         assert page.locator("#sidebar").evaluate("el => el.getBoundingClientRect().top >= document.querySelector('.topbar').getBoundingClientRect().bottom")
                         assert page.locator("#sidebar").evaluate("el => el.getBoundingClientRect().height < innerHeight * .8")
