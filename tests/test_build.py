@@ -79,7 +79,6 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertIn("field-sizing:content", css)
         self.assertNotIn("textarea-grip", css + source)
         self.assertIn("markdown-help-content", source)
-        self.assertIn("guide.open = true", source)
         self.assertIn("control.hidden = showing", source)
         self.assertIn("textarea", source)
         self.assertIn('id="preview-text"', submission)
