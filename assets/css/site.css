@@ -277,9 +277,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   padding: 0;
   border: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
   border-radius: 14px;
-  background: color-mix(in srgb, var(--surface) 82%, transparent);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  background: var(--surface);
   color: var(--text);
   box-shadow: 0 16px 48px rgba(18,19,23,.14);
   overflow: hidden;
@@ -403,9 +401,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 #search-results:not(:empty) {
-  padding: 8px 10px;
+  padding: 10px 16px;
   color: var(--muted);
   font-size: 13px;
+}
+
+.search-summary {
+  padding: 2px 2px 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
 }
 
 #search-results ul {
@@ -414,13 +419,22 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   padding: 0;
 }
 
+#search-results li+li {
+  border-top: 1px solid var(--line);
+}
+
 #search-results li a {
   display: block;
-  padding: 7px 10px;
+  padding: 10px 2px;
   border-radius: 8px;
   color: var(--text);
   font-size: 15px;
   line-height: 1.5;
+}
+
+.search-title {
+  display: block;
+  font-weight: 600;
 }
 
 #search-results li a:hover, #search-results li a:focus-visible {
@@ -428,15 +442,21 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .search-match {
-  display: block;
-  margin-top: 4px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin-top: 3px;
   color: var(--muted);
   font-size: 12px;
+  font-weight: 400;
+  overflow-wrap: anywhere;
 }
 
 #search-results mark {
-  background: var(--soft);
+  background: transparent;
   color: var(--accent);
+  font-weight: 700;
 }
 
 .year-select {

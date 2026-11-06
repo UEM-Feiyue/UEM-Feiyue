@@ -110,7 +110,7 @@ def render(meta, body, url):
     source = re.sub(r'<title>.*?</title>', lambda _: f'<title>{title} · UEM Feiyue</title>', source, count=1, flags=re.S)
     description = html.escape(str(meta.get("excerpt") or display_title(meta)), quote=True)
     source = re.sub(r'<meta name="description"[^>]*>', lambda _: f'<meta name="description" content="{description}">', source, count=1)
-    content = f'<article class="article-page" data-pagefind-body><a class="article-back" href="../?category={quote(str(meta["category"]))}"><span class="link-arrow link-arrow-left" aria-hidden="true"></span> 返回{html.escape(CATEGORIES[meta["category"]])}</a><h1>{title}</h1>{demo}<p class="article-byline">{byline}</p>{toc}<div class="article-body">{clean}</div>{contact}</article>'
+    content = f'<article class="article-page"><a class="article-back" href="../?category={quote(str(meta["category"]))}"><span class="link-arrow link-arrow-left" aria-hidden="true"></span> 返回{html.escape(CATEGORIES[meta["category"]])}</a><h1>{title}</h1>{demo}<p class="article-byline">{byline}</p>{toc}<div class="article-body" data-pagefind-body>{clean}</div>{contact}</article>'
     return re.sub(r'(<main[^>]*>).*?(</main>)', lambda m: m[1] + content + m[2], source, count=1, flags=re.S)
 
 

@@ -1,6 +1,15 @@
 (() => {
   // The saved theme is applied before CSS in theme-init.js, not during first paint.
   const root = document.documentElement;
+  const siteName = document.querySelector('.footer-brand-name')?.textContent.trim();
+  const sourceUrl = document.querySelector('.footer-github')?.href;
+  if (siteName && sourceUrl) {
+    const styles = getComputedStyle(root);
+    const accent = styles.getPropertyValue('--accent').trim();
+    console.info(`%c ${siteName} %c ${sourceUrl}`,
+      `background:${accent};color:${styles.getPropertyValue('--bg').trim()};font-weight:700;padding:5px 8px;border-radius:6px 0 0 6px`,
+      `background:${styles.getPropertyValue('--soft').trim()};color:${accent};padding:5px 8px;border-radius:0 6px 6px 0`);
+  }
   // Same three-way system / light / dark cycle as the personal site.
   const modes = ['system', 'light', 'dark'];
   const themeButton = document.querySelector('#theme-toggle');
@@ -198,14 +207,17 @@
   const indexedPath = path => path.startsWith(siteRoot) ? '/' + path.slice(siteRoot.length) : path;
   const cardByPath = new Map(cards.map(card => [indexedPath(card.querySelector('h3 a').pathname), card]));
   const highlight = (element, value, query) => {
-    const start = query ? value.toLocaleLowerCase().indexOf(query.toLocaleLowerCase()) : -1;
-    if (start < 0) {
-      element.textContent = value;
-      return;
+    const terms = [...new Set(query.split(/\s+/))].sort((a, b) => b.length - a.length);
+    const pattern = new RegExp(terms.map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'giu');
+    let end = 0;
+    for (const match of value.matchAll(pattern)) {
+      element.append(value.slice(end, match.index));
+      const mark = document.createElement('mark');
+      mark.textContent = match[0];
+      element.append(mark);
+      end = match.index + match[0].length;
     }
-    const mark = document.createElement('mark');
-    mark.textContent = value.slice(start, start + query.length);
-    element.replaceChildren(value.slice(0, start), mark, value.slice(start + query.length));
+    element.append(value.slice(end));
   };
   const empty = document.querySelector('#empty-state');
   const count = document.querySelector('#results-count');
@@ -240,7 +252,10 @@
   new ResizeObserver(syncScrollHint).observe(results);
   let engine;
   let requestId = 0;
-  const loadSearch = () => engine ??= import('/pagefind/pagefind.js');
+  const loadSearch = () => engine ??= import('/pagefind/pagefind.js').then(async pagefind => {
+    await pagefind.options({ excerptLength: 18, excerptEllipsis: '…' });
+    return pagefind;
+  });
   const positionSearch = () => {
     if (mobile.matches) {
       const viewport = window.visualViewport;
@@ -312,25 +327,28 @@
         const link = document.createElement('a');
         link.href = card.querySelector('h3 a').href;
         const title = document.createElement('span');
+        title.className = 'search-title';
         highlight(title, page.meta.title, query);
         link.append(title);
-        if (!page.meta.title.toLocaleLowerCase().includes(query.toLocaleLowerCase())) {
+        const position = exactCjkPhrase ? page.content.indexOf(query) : -1;
+        if (position >= 0 || page.excerpt?.includes('<mark>')) {
           const note = document.createElement('span');
           note.className = 'search-match';
-          note.append('正文匹配：');
-          const snippet = document.createElement('span');
-          const context = page.plain_excerpt || '';
-          const position = page.content.indexOf(query);
-          highlight(snippet, exactCjkPhrase && !context.includes(query) && position >= 0 ?
-            page.content.slice(Math.max(0, position - 30), position + query.length + 50) : context, query);
-          note.append(snippet);
+          if (position >= 0) {
+            highlight(note, page.content.slice(Math.max(0, position - 30), position + query.length + 50), query);
+          } else note.innerHTML = page.excerpt;
           link.append(note);
         }
         row.append(link);
         list.append(row);
       }
       results.replaceChildren();
-      if (list.childElementCount) results.append(list);
+      if (list.childElementCount) {
+        const summary = document.createElement('p');
+        summary.className = 'search-summary';
+        summary.textContent = `找到 ${list.childElementCount} 篇经历`;
+        results.append(summary, list);
+      }
       else results.textContent = '没有找到匹配内容';
       syncScrollHint();
     } catch (error) {

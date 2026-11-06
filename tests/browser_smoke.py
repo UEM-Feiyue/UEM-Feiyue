@@ -254,7 +254,8 @@ def main():
                     page.wait_for_function("document.querySelector('#search-results').textContent.includes('没有找到匹配内容')")
                     page.locator("#search").fill(articles[0]["author"])
                     page.locator("#search-results li a").first.wait_for(state="visible")
-                    assert page.locator("#search-results mark").count() > 0
+                    assert page.locator("#search-results .search-summary").inner_text().startswith("找到 ")
+                    assert page.locator("#search-results .search-title mark").count() > 0
                     page.locator("#search-results li a").first.click()
                     page.wait_for_selector(".article-body")
                     assert page.locator(".demo-badge").is_visible() == articles[0]["demo"]
@@ -438,6 +439,7 @@ def main():
             assert "陈同学" in page.locator("#search-results li a").inner_text()
             assert "推荐信" in page.locator("#search-results .search-match").inner_text()
             assert page.locator("#search-results .search-match mark").count() == 1
+            assert page.locator("#search-results .search-title mark").count() == 0
             page.locator(".search-close").click()
             page.locator("#year-trigger").click()
             page.locator("#year-options [data-value='2026']").click()
