@@ -82,6 +82,7 @@ def shared_chrome(source, page, prefix="./", category=None):
         f'<a href="{prefix}?category={quote(item["id"])}">{html.escape(item["label"])}</a>' for item in SCHEMA["categories"])
     footer_links += f'<a href="{prefix}submit.html">投稿分享</a><a href="{prefix}community.html">共建与联系</a>'
     footer = re.sub(r'(<nav class="footer-links"[^>]*>).*?(</nav>)', lambda m: m[1] + footer_links + m[2], footer, flags=re.S)
+    footer = footer.replace('class="footer-copyright" href="./community.html"', f'class="footer-copyright" href="{prefix}community.html"')
     for pattern, fragment in ((r'<aside class="sidebar".*?</aside>', sidebar),
                               (r'<header class="topbar"[^>]*>.*?</header>', header),
                               (r'<footer class="site-footer".*?</footer>', footer)):

@@ -1159,15 +1159,18 @@ a:is(:hover, :focus-visible) .link-arrow-left {
   transform: translateX(-3px) rotate(225deg);
 }
 
-.nav-contribute {
+.nav-contribute, .nav-community {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   margin-top: 16px;
 }
 
-.nav-contribute::before {
+.nav-contribute {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-contribute::before, .nav-community::before {
   content: "";
   position: absolute;
   top: -11px;
