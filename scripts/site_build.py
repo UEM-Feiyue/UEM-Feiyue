@@ -3,7 +3,7 @@ import shutil
 import subprocess
 import sys
 
-SOURCE_FILES = ("index.html", "submit.html")
+SOURCE_FILES = ("index.html", "submit.html", "community.html")
 SOURCE_DIRS = ("content", "data")
 
 
