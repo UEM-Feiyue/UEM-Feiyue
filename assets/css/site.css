@@ -1205,7 +1205,10 @@ a:is(:hover, :focus-visible) .link-arrow-left {
 }
 
 .markdown-preview-toggle {
-  background: var(--surface);
+  background: var(--soft);
+  color: var(--accent);
+  border-color: var(--accent);
+  font-weight: 650;
 }
 
 .markdown-preview-toggle[aria-pressed="true"] {
