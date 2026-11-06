@@ -114,7 +114,6 @@
   if (!archive) return;
   const nav = document.querySelector('#category-nav');
   const year = document.querySelector('#year-filter');
-  const search = document.querySelector('#search');
   // Native popover gives a fully styled menu and browser-managed light dismiss,
   // Escape, focus order and top-layer positioning. The select is the fallback.
   const yearTrigger = document.querySelector('#year-trigger');
@@ -147,7 +146,7 @@
     }
     const positionMenu = () => {
       const rect = yearTrigger.getBoundingClientRect();
-      const width = Math.max(rect.width, 148);
+      const width = Math.max(rect.width, 108);
       const spaceBelow = innerHeight - rect.bottom;
       yearMenu.style.width = width + 'px';
       yearMenu.style.left = Math.max(8, Math.min(rect.left, innerWidth - width - 8)) + 'px';
@@ -197,71 +196,138 @@
   const cards = [...archive.querySelectorAll('.article-item')];
   const siteRoot = new URL('./', location.href).pathname;
   const indexedPath = path => path.startsWith(siteRoot) ? '/' + path.slice(siteRoot.length) : path;
-  const originalExcerpts = new Map(cards.map(card => [card, card.querySelector('.article-excerpt').textContent]));
-  const status = document.querySelector('#search-status');
+  const cardByPath = new Map(cards.map(card => [indexedPath(card.querySelector('h3 a').pathname), card]));
+  const highlight = (element, value, query) => {
+    const start = query ? value.toLocaleLowerCase().indexOf(query.toLocaleLowerCase()) : -1;
+    if (start < 0) {
+      element.textContent = value;
+      return;
+    }
+    const mark = document.createElement('mark');
+    mark.textContent = value.slice(start, start + query.length);
+    element.replaceChildren(value.slice(0, start), mark, value.slice(start + query.length));
+  };
   const empty = document.querySelector('#empty-state');
   const count = document.querySelector('#results-count');
   let activeCategory = 'all';
-  let matches = null;
-  let searching = false;
-  let requestId = 0;
-  let engine;
-  const loadSearch = () => engine ??= import('/pagefind/pagefind.js');
   const renderFilters = () => {
     let visibleCount = 0;
     let hasDemo = false;
     for (const card of cards) {
-      const articleUrl = indexedPath(card.querySelector('h3 a').pathname);
-      const visible = !searching && (matches === null || matches.has(articleUrl)) &&
-        (activeCategory === 'all' || card.dataset.category === activeCategory) &&
+      const visible = (activeCategory === 'all' || card.dataset.category === activeCategory) &&
         (year.value === 'all' || card.dataset.year === year.value);
       card.hidden = !visible;
-      card.querySelector('.article-excerpt').textContent =
-        matches?.get(articleUrl) || originalExcerpts.get(card);
       if (visible) {
         visibleCount++;
         hasDemo ||= card.dataset.demo === 'true';
       }
     }
-    count.textContent = searching ? '正在搜索…' :
-      visibleCount + ' 篇经历' + (hasDemo ? ' · 含演示内容' : '');
-    empty.hidden = searching || visibleCount > 0;
+    count.textContent = visibleCount + ' 篇经历' + (hasDemo ? ' · 含演示内容' : '');
+    empty.hidden = visibleCount > 0;
   };
-  const searchArticles = async () => {
+  const dialog = document.querySelector('#search-dialog');
+  const search = document.querySelector('#search');
+  const searchOpen = document.querySelector('.search-open');
+  const results = document.querySelector('#search-results');
+  const scrollHint = document.createElement('div');
+  scrollHint.className = 'scroll-hint';
+  scrollHint.setAttribute('aria-hidden', 'true');
+  dialog.append(scrollHint);
+  const syncScrollHint = () => {
+    scrollHint.classList.toggle('is-visible', results.scrollHeight - results.clientHeight - results.scrollTop > 2);
+  };
+  results.addEventListener('scroll', syncScrollHint, {passive:true});
+  new ResizeObserver(syncScrollHint).observe(results);
+  let engine;
+  let requestId = 0;
+  const loadSearch = () => engine ??= import('/pagefind/pagefind.js');
+  const positionSearch = () => {
+    dialog.style.setProperty('--search-top', Math.round(searchOpen.getBoundingClientRect().bottom + 12) + 'px');
+  };
+  const openSearch = () => {
+    if (archive.hidden) return;
+    positionSearch();
+    dialog.showModal();
+    search.focus({preventScroll:true});
+    syncScrollHint();
+  };
+  searchOpen.hidden = false;
+  searchOpen.addEventListener('click', openSearch);
+  window.addEventListener('resize', () => { if (dialog.open) positionSearch(); });
+  dialog.addEventListener('close', () => {
+    ++requestId;
+    search.value = '';
+    results.replaceChildren();
+    syncScrollHint();
+    if (!archive.hidden) searchOpen.focus({preventScroll:true});
+  });
+  dialog.querySelector('.search-close').addEventListener('click', () => dialog.close());
+  dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+  document.addEventListener('keydown', event => {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      if (dialog.open) dialog.close(); else openSearch();
+    } else if (event.key === 'Escape' && dialog.open) {
+      event.preventDefault();
+      dialog.close();
+    }
+  });
+  search.addEventListener('input', async () => {
     const query = search.value.trim();
     const id = ++requestId;
-    matches = null;
-    searching = Boolean(query);
-    status.hidden = !query;
-    if (!query) {
-      status.textContent = '';
-      renderFilters();
-      return;
-    }
-    status.textContent = '正在搜索文章全文…';
-    renderFilters();
+    results.replaceChildren();
+    results.scrollTop = 0;
+    syncScrollHint();
+    if (!query) return;
+    results.textContent = '正在搜索…';
     try {
       const pagefind = await loadSearch();
-      const result = await pagefind.search(query);
+      const found = await pagefind.debouncedSearch(query);
+      if (id !== requestId || !found) return;
+      const pages = await Promise.all(found.results.map(item => item.data()));
       if (id !== requestId) return;
-      const pages = await Promise.all(result.results.map(item => item.data()));
-      if (id !== requestId) return;
-      matches = new Map(pages.map(page => [new URL(page.url, location.href).pathname,
-        page.plain_excerpt || page.meta?.title || '']));
-      status.textContent = result.results.length ? '全文搜索结果' : '没有找到匹配内容';
+      const titleQuery = query.normalize('NFKC').toLocaleLowerCase();
+      const exactCjkPhrase = /^[\p{Script=Han}]{2,}$/u.test(query);
+      pages.sort((a, b) => Number(b.meta.title.normalize('NFKC').toLocaleLowerCase().includes(titleQuery)) -
+        Number(a.meta.title.normalize('NFKC').toLocaleLowerCase().includes(titleQuery)));
+      const list = document.createElement('ul');
+      for (const page of pages) {
+        const card = cardByPath.get(new URL(page.url, location.href).pathname);
+        if (!card || card.hidden) continue;
+        if (exactCjkPhrase && !page.meta.title.includes(query) && !page.content.includes(query)) continue;
+        const row = document.createElement('li');
+        const link = document.createElement('a');
+        link.href = card.querySelector('h3 a').href;
+        const title = document.createElement('span');
+        highlight(title, page.meta.title, query);
+        link.append(title);
+        if (!page.meta.title.toLocaleLowerCase().includes(query.toLocaleLowerCase())) {
+          const note = document.createElement('span');
+          note.className = 'search-match';
+          note.append('正文匹配：');
+          const snippet = document.createElement('span');
+          const context = page.plain_excerpt || '';
+          const position = page.content.indexOf(query);
+          highlight(snippet, exactCjkPhrase && !context.includes(query) && position >= 0 ?
+            page.content.slice(Math.max(0, position - 30), position + query.length + 50) : context, query);
+          note.append(snippet);
+          link.append(note);
+        }
+        row.append(link);
+        list.append(row);
+      }
+      results.replaceChildren();
+      if (list.childElementCount) results.append(list);
+      else results.textContent = '没有找到匹配内容';
+      syncScrollHint();
     } catch (error) {
       if (id !== requestId) return;
-      matches = new Map();
-      status.textContent = '全文搜索暂不可用，请刷新页面后重试。';
+      results.textContent = '全文搜索暂不可用，请刷新页面后重试。';
       console.error('Pagefind search failed', error);
-    } finally {
-      if (id === requestId) {
-        searching = false;
-        renderFilters();
-      }
     }
-  };
+  });
   const renderView = () => {
+    if (dialog.open) dialog.close();
     const params = new URLSearchParams(location.search);
     const selected = params.get('category');
     const isHome = !selected && params.get('view') !== 'all';
@@ -276,18 +342,12 @@
     active?.setAttribute('aria-current', 'page');
     document.querySelector('#stories-heading').textContent = current ? current.dataset.categoryLabel + '经历' : '全部经历';
     document.querySelector('#category-intro').textContent = current ? current.dataset.categoryDescription + '，阅读同学的经验分享。' : '按方向浏览同学分享的升学与职业经验。';
-    search.value = history.state?.search || '';
     year.value = history.state?.year || 'all';
     year.dispatchEvent(new Event('yearsync'));
-    searchArticles();
+    renderFilters();
   };
-  const filter = () => {
-    history.replaceState({...history.state, search: search.value, year: year.value}, '');
-    searchArticles();
-  };
-  search.addEventListener('input', filter);
   year.addEventListener('change', () => {
-    history.replaceState({...history.state, search: search.value, year: year.value}, '');
+    history.replaceState({...history.state, year: year.value}, '');
     renderFilters();
   });
   const indexPath = path => path.replace(/index\.html$/, '');
@@ -309,7 +369,7 @@
       }
       return;
     }
-    history.pushState({search: '', year: 'all'}, '', url);
+    history.pushState({year: 'all'}, '', url);
     const update = () => {
       renderView();
       window.scrollTo(0, 0);

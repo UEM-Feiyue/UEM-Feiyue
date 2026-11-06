@@ -74,7 +74,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   height: 100vh;
   flex: none;
   border-right: 1px solid var(--line);
-  padding: 32px 20px;
+  padding: 32px 20px 4px;
   display: flex;
   flex-direction: column;
   background: var(--surface);
@@ -112,8 +112,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .sidebar-bottom {
+  display: flex;
+  justify-content: center;
   margin-top: auto;
-  padding-top: 16px;
+  padding-top: 8px;
   border-top: 1px solid var(--line);
 }
 
@@ -189,7 +191,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 .section {
   padding: 75px 0;
-  border-bottom: 1px solid var(--line);
 }
 
 .section-heading {
@@ -207,23 +208,20 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   margin: 8px 0 0;
 }
 
-.section-heading>p {
+.section-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.section-actions>p {
   font-size: 13px;
   color: var(--muted);
   margin: 0;
 }
 
-.filters {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 28px;
-}
-
-.search-field {
-  flex: 1;
-}
-
-.filters input, .filters select, .field input, .field select, .field textarea {
+.year-select select, .field input, .field select, .field textarea {
   width: 100%;
   border: 1px solid var(--line);
   background: var(--surface);
@@ -233,27 +231,226 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   outline: none;
 }
 
-.filters input:focus, .filters select:focus, .field input:focus, .field select:focus, .field textarea:focus {
+.year-select select:focus, .field input:focus, .field select:focus, .field textarea:focus {
   border-color: var(--accent);
 }
 
-.filters select {
-  width: auto;
-  max-width: 148px;
+.search-open {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.search-open:hover, .search-open:focus-visible {
+  color: var(--accent);
+}
+
+.search-label {
+  white-space: nowrap;
+}
+
+.search-open kbd {
+  font: inherit;
+  font-size: 11px;
+}
+
+.search-dialog {
+  position: fixed;
+  top: var(--search-top, 132px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(460px, calc(100% - 32px));
+  max-height: min(580px, calc(100dvh - var(--search-top, 132px) - 16px));
+  margin: 0;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: var(--text);
+  box-shadow: 0 16px 48px rgba(18,19,23,.14);
+  overflow: hidden;
+}
+
+.search-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.search-dialog::backdrop {
+  background: rgba(18,19,23,.3);
+}
+
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  min-height: 54px;
+  padding: 0 14px;
+}
+
+.search-field svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.search-field input {
+  flex: 1;
+  min-width: 0;
+  height: 54px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+}
+
+.search-field input:focus {
+  outline: none;
+}
+
+.search-field input::placeholder {
+  color: var(--muted);
+}
+
+.search-field input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.search-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 36px;
+  flex: none;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font: 24px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  cursor: pointer;
+}
+
+.search-close:hover, .search-close:focus-visible {
+  color: var(--text);
+  background: var(--surface);
+}
+
+#search-results {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  border-top: 1px solid var(--line);
+}
+
+#search-results:empty {
+  display: none;
+}
+
+#search-results::-webkit-scrollbar {
+  display: none;
+}
+
+.search-dialog:not(:has(#search-results ul)) .scroll-hint {
+  display: none;
+}
+
+.scroll-hint {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: none;
+  height: 20px;
+  color: var(--muted);
+  visibility: hidden;
+}
+
+.scroll-hint.is-visible {
+  visibility: visible;
+}
+
+.scroll-hint::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.scroll-hint.is-visible::before {
+  animation: scroll-hint 1.4s ease-in-out infinite;
+}
+
+@keyframes scroll-hint {
+  50% { transform: translateY(3px) rotate(45deg); }
+}
+
+#search-results:not(:empty) {
+  padding: 8px 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+#search-results ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#search-results li a {
+  display: block;
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+#search-results li a:hover, #search-results li a:focus-visible {
+  color: var(--accent);
+}
+
+.search-match {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+#search-results mark {
+  background: var(--soft);
+  color: var(--accent);
 }
 
 .year-select {
   position: relative;
   display: inline-flex;
   flex: none;
-  width: 136px;
+  width: max-content;
   min-width: 0;
 }
 
-.filters .year-select select {
+.year-select select {
   appearance: none;
   -webkit-appearance: none;
-  width: 100%;
+  width: auto;
   max-width: none;
   padding: 10px 35px 10px 13px;
   cursor: pointer;
@@ -275,7 +472,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  width: 100%;
+  width: auto;
   min-height: 44px;
   padding: 9px 12px;
   border: 1px solid var(--line);
@@ -307,7 +504,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .year-options[popover] {
   position: fixed;
   inset: auto;
-  min-width: 136px;
+  min-width: 0;
   max-height: min(280px,60vh);
   overflow-y: auto;
   padding: 5px;
@@ -330,6 +527,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   text-align: left;
   font: inherit;
   font-size: 14px;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -358,7 +556,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   color: var(--accent);
 }
 
-.article-meta, .article-excerpt {
+.article-meta {
   color: var(--muted);
   font-size: 13px;
   margin: 0;
@@ -791,6 +989,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 /* Archive-first layout: category navigation lives in the sidebar, not repeated cards. */
 .archive-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
   padding: clamp(38px,6vw,76px) 0 26px;
   padding-top: 42px;
   padding-bottom: 14px;
@@ -850,22 +1052,27 @@ a:is(:hover, :focus-visible) .link-arrow-left {
 }
 
 .nav-contribute {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: var(--accent);
-  font-weight: 650;
-  margin-top: 10px;
+  margin-top: 16px;
+}
+
+.nav-contribute::before {
+  content: "";
+  position: absolute;
+  top: -11px;
+  left: 0;
+  right: 0;
   border-top: 1px solid var(--line);
-  border-radius: 0!important;
-  padding-top: 18px!important;
 }
 
 .sidebar-theme {
   display: flex;
   align-items: center;
   gap: 12px;
-  width: 100%;
+  width: max-content;
   border: 1px solid transparent;
   background: transparent;
   color: var(--muted);
@@ -919,12 +1126,6 @@ a:is(:hover, :focus-visible) .link-arrow-left {
   display: flex;
   flex-wrap: wrap;
   gap: 12px 30px;
-}
-
-.home-guide {
-  border-top: 1px solid var(--line);
-  margin-top: 65px;
-  padding-top: 28px;
 }
 
 [hidden] {
@@ -1199,16 +1400,10 @@ proportions; no composition, mask, crop or duplicate seal. */
   border-color: var(--accent);
 }
 
-.page.is-home .home-guide {
-  margin-top: clamp(36px,6vh,64px);
-  padding-top: 22px;
-  border-color: var(--line);
-}
-
 /* HAI's two-column footer structure; colors and surface belong to UEM's theme. */
 .site-footer {
   flex: none;
-  background: var(--surface);
+  background: linear-gradient(to bottom,var(--bg),var(--surface) 80px);
   color: var(--text);
   padding: 48px clamp(22px,5vw,76px) 22px;
 }
@@ -1223,7 +1418,7 @@ proportions; no composition, mask, crop or duplicate seal. */
   display: grid;
   grid-template-columns: minmax(0,1fr) max-content;
   justify-content: space-between;
-  align-items: start;
+  align-items: center;
   gap: clamp(24px,5vw,72px);
 }
 
@@ -1300,10 +1495,16 @@ proportions; no composition, mask, crop or duplicate seal. */
   font-size: 12px;
 }
 
-.search-status {
-  font-size: 13px;
-  color: var(--muted);
-  margin: -10px 0 14px;
+.footer-github {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.footer-github svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
 }
 
 /* Responsive layout and environment preferences */
@@ -1332,7 +1533,14 @@ proportions; no composition, mask, crop or duplicate seal. */
   height: var(--mobile-header-height);
   padding: 0 clamp(18px,4vw,28px);
   background: var(--surface);
-  border-bottom: 1px solid var(--line);
+  border-bottom: 0;
+  }
+
+  .campus-banner {
+  background-image: linear-gradient(to bottom,var(--surface),transparent 80px),
+    linear-gradient(to bottom,transparent 70%,var(--bg) 100%),
+    var(--banner-tint),url("../images/anguo-garden.jpg");
+  background-position: center,center,center,center 43%;
   }
 
   .mobile-brand {
@@ -1349,9 +1557,6 @@ proportions; no composition, mask, crop or duplicate seal. */
   width: 44px;
   height: 44px;
   padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  background: var(--soft);
   color: var(--text);
   }
 
@@ -1394,6 +1599,7 @@ proportions; no composition, mask, crop or duplicate seal. */
   position: fixed;
   z-index: 45;
   top: calc(var(--mobile-header-height) + 10px);
+  bottom: auto;
   left: clamp(14px,4vw,28px);
   right: clamp(14px,4vw,28px);
   width: auto;
@@ -1440,7 +1646,9 @@ proportions; no composition, mask, crop or duplicate seal. */
   }
 
   .sidebar-bottom {
+  justify-content: flex-start;
   margin-top: 12px;
+  padding-top: 16px;
   }
 
   .content {
@@ -1449,10 +1657,6 @@ proportions; no composition, mask, crop or duplicate seal. */
 
   .home-intro {
   padding: 42px 0 40px;
-  }
-
-  .home-guide {
-  margin-top: 40px;
   }
 
   .brand-logo {
@@ -1511,27 +1715,24 @@ proportions; no composition, mask, crop or duplicate seal. */
   }
 
   .section-heading {
-  display: block;
+  align-items: flex-end;
   }
 
-  .section-heading>p {
-  margin-top: 10px;
+  .section-actions>p {
+  text-align: right;
   }
 
-  .filters {
-  flex-wrap: wrap;
+  .search-open {
+  flex: none;
+  justify-content: center;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-bottom: 0;
   }
 
-  .search-field {
-  flex-basis: 100%;
-  }
-
-  .filters .year-select {
-  width: 136px;
-  }
-
-  .filters .year-select select {
-  max-width: none;
+  .search-open .search-label, .search-open kbd {
+  display: none;
   }
 
   .submit-intro {
@@ -1562,10 +1763,6 @@ proportions; no composition, mask, crop or duplicate seal. */
   gap: 4px 24px;
   }
 
-  .home-guide {
-  margin-top: 34px;
-  }
-
   .markdown-toolbar {
   padding: 9px;
   gap: 5px;
@@ -1587,7 +1784,7 @@ proportions; no composition, mask, crop or duplicate seal. */
 
   .campus-banner {
   height: clamp(220px,60vw,320px);
-  background-position: center,center,52% 43%;
+  background-position: center,center,center,52% 43%;
   }
 
   .page.is-home .content {

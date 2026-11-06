@@ -121,7 +121,7 @@ def render_home(entries):
         badge = '<span class="demo-badge">演示</span>' if entry["demo"] else ''
         esc = lambda value: html.escape(str(value), quote=True)
         label = ' · '.join(filter(None, (CATEGORIES[entry["category"]], entry["year"] + ' 届', entry["major"])))
-        cards.append(f'<article class="article-item" data-category="{esc(entry["category"])}" data-year="{esc(entry["year"])}" data-demo="{str(entry["demo"]).lower()}">{badge}<p class="article-meta">{html.escape(label)}</p><h3><a href="./{esc(entry["url"])}">{html.escape(entry["title"])}</a></h3><p class="article-excerpt">{html.escape(entry["excerpt"])}</p><a class="article-more" href="./{esc(entry["url"])}">阅读全文<span class="link-arrow"></span></a></article>')
+        cards.append(f'<article class="article-item" data-category="{esc(entry["category"])}" data-year="{esc(entry["year"])}" data-demo="{str(entry["demo"]).lower()}">{badge}<p class="article-meta">{html.escape(label)}</p><h3><a href="./{esc(entry["url"])}">{html.escape(entry["title"])}</a></h3><a class="article-more" href="./{esc(entry["url"])}">阅读全文<span class="link-arrow"></span></a></article>')
     source = re.sub(r'(<div id="articles"[^>]*>).*?(</div>)', lambda m: m[1] + ''.join(cards) + m[2], source, count=1, flags=re.S)
     years = ''.join(f'<option value="{html.escape(year, quote=True)}">{html.escape(year)}</option>' for year in sorted({entry["year"] for entry in entries}, reverse=True))
     source = re.sub(r'(<select\b[^>]*\bid="year-filter"[^>]*>).*?(</select>)', lambda m: m[1] + '<option value="all">全部届次</option>' + years + m[2], source, count=1, flags=re.S)
