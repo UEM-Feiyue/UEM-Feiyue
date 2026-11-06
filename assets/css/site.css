@@ -272,7 +272,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   left: 50%;
   transform: translateX(-50%);
   width: min(460px, calc(100% - 32px));
-  max-height: min(580px, calc(100dvh - var(--search-top, 132px) - 16px));
+  max-height: min(580px, var(--search-available, calc(100dvh - var(--search-top, 132px) - 16px)));
   margin: 0;
   padding: 0;
   border: 1px solid color-mix(in srgb, var(--text) 10%, transparent);

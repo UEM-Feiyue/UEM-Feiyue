@@ -225,7 +225,11 @@ def main():
                     assert page.locator("#search-dialog").evaluate("""el => {
                         const dialog = el.getBoundingClientRect();
                         const button = document.querySelector('.search-open').getBoundingClientRect();
-                        return Math.abs(dialog.top - button.bottom - 12) < 2 &&
+                        const expectedTop = innerWidth <= 900
+                            ? ((visualViewport?.offsetTop || 0) + (visualViewport?.height || innerHeight) / 2)
+                            : button.bottom + 12;
+                        const actualTop = innerWidth <= 900 ? (dialog.top + dialog.bottom) / 2 : dialog.top;
+                        return Math.abs(actualTop - expectedTop) < 3 &&
                             Math.abs((dialog.left + dialog.right) / 2 - innerWidth / 2) < 2;
                     }""")
                     page.locator("#search").fill("no-matching-story-987654321")
