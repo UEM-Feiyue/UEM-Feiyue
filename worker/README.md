@@ -53,8 +53,8 @@ creates `content/community/issue-<number>.md` only for UEM submission Issues
 other users and duplicate imports do not publish. A successful import pushes
 Markdown to main, triggering the existing static site deployment. GitHub Actions
 requires `contents: write` and repository workflow permission to push to main.
-After rollout verify moderation, idempotency and page build using synthetic
-Issues, and close test Issues as `not planned` to avoid publication.
+  Use `not planned` for synthetic workflow checks; completed closures publish
+  content publicly and should be reserved for reviewed real submissions.
 
 ## Security
 

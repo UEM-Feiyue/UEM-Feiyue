@@ -11,11 +11,10 @@ python preview.py --build-only
 
 Windows 使用 `py -3`。预览默认在 `http://127.0.0.1:8765/`，`--build-only` 只验证并生成 `_site/`。PR 的 `validate.yml` 还运行 Chromium/WebKit 浏览器检查。
 
-## 生产切换
+## 发布与权限
 
-1. 为 UEM-Feiyue 安装可访问 Source 和 Published 的专用 GitHub App，授予这两个仓库 **Contents: Read and write**。在 Source Actions 中设置 Variable `PUBLISH_APP_ID` 和 Secret `PUBLISH_APP_PRIVATE_KEY`。发布工作流在变量缺失时跳过，避免误动生产仓库。
-2. 确认 Source `main` 上的 `deploy.yml` 能通过测试并将 `_site/` 推送到 Published `main`；确认 Published Pages 从 `main` 根目录部署、产物页面与 `build-info.json` 对应同一次构建。
-3. 在 Source 创建 `submission:pending`、`submission:published` 标签。更新 Cloudflare Worker 的 `GITHUB_TOKEN`，将其权限限定在 Source 的 **Issues: Read and write**；部署新的 Worker，并验证实际投稿 Issue 落在 Source。Worker 的生产开关由 Cloudflare 环境控制，详见 `worker/README.md`。
-4. 验证维护者关闭测试 Issue 为 `not planned` 不发布；关闭合格 Issue 为 `completed` 后，Source 产生 Markdown 提交，Source 发布工作流再更新 Published。生产切换确认后，Published 仅保留生成文件。
+Source 的 `deploy.yml` 在 `main` Push 后测试、构建 `_site/`，并用安装于 Source 和 Published 的 `UEM Feiyue Site Automation` App 将变化后的产物推送到 Published `main`。Source Actions 保存 Variable `PUBLISH_APP_ID` 与 Secret `PUBLISH_APP_PRIVATE_KEY`；缺少 App ID 时发布任务跳过。Published 的 Pages 从 `main` 根目录部署。通过 Published 的 `build-info.json` 核对源码提交和构建运行；产物未变化时不会生成新提交。
+
+投稿 Worker 使用仅有 **Issues: Read and write** 权限的 `UEM-Feiyue-Submissions` 令牌创建 Source Issue。它的生产开关位于 Cloudflare，见 `worker/README.md`。不要将令牌扩大为代码写权限。维护者以 Close as completed 审核有效投稿时，Source 的 `publish-completed-submission.yml` 验证 Issue 及内容、用 App 提交 Markdown；Source Push 随后触发静态发布。Close as not planned 只清除待审标签，不生成内容。对真实投稿执行 completed 审核前应核对公开正文与联系信息。
 
 不要把 App 私钥、Worker 凭据或 Turnstile 密钥提交进仓库。若旧 Published 中仍有待审核投稿，应先处理或迁移其审核记录，避免丢失待办。
