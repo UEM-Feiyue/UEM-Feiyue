@@ -71,7 +71,7 @@ test('valid verified submission creates one pending Issue', async () => {
       success: true, hostname: 'uem-feiyue.github.io', action: 'uem_feiyue_submit'
     });
     return Response.json({
-      html_url: 'https://github.com/UEM-Feiyue/UEM-Feiyue.github.io/issues/57'
+      html_url: 'https://github.com/UEM-Feiyue/UEM-Feiyue-Site-Source/issues/57'
     }, { status: 201 });
   };
   try {

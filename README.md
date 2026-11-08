@@ -1,5 +1,9 @@
 # UEM Feiyue · 应急管理大学飞跃手册
 
+本仓库 `UEM-Feiyue/UEM-Feiyue-Site-Source` 是网站源码与构建入口。`UEM-Feiyue/UEM-Feiyue.github.io` 保存自动生成的静态产物，GitHub Pages 从其 `main` 根目录部署。Source `main` 的 Push 触发测试、一次构建及 GitHub App 跨仓库发布；只有产物变化时才提交 Published。`build-info.json` 记录源码提交与构建运行，Published 的 README 由 `PUBLISHED_README.md` 生成。
+
+投稿 Worker 创建 Source 中的公开 Issue。维护者以 **Close as completed** 审核后，Source Action 校验投稿内容，用 App 提交 Markdown；该提交再次触发网站发布。投稿与发布的操作步骤见 [PREVIEW.md](PREVIEW.md)。
+
 由同学共同维护的考研、留学、就业、考公考编经历分享站。视觉以「应急蓝」为主，采用原创蓝色系设计变量（**非经校方确认的标准色值**）。
 
 ## 本地预览

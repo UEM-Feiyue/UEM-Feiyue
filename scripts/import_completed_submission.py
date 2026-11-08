@@ -67,7 +67,7 @@ def import_event(event, root=ROOT):
     issue = event["issue"]
     if issue.get("pull_request") or not isinstance(issue.get("number"), int) or not (1 <= issue["number"] <= 9999999):
         raise ValueError("Invalid Issue")
-    if event.get("repository", {}).get("full_name") != "UEM-Feiyue/UEM-Feiyue.github.io":
+    if event.get("repository", {}).get("full_name") != "UEM-Feiyue/UEM-Feiyue-Site-Source":
         raise ValueError("Wrong repository")
     record = decode_issue(issue)
     target = root / "content" / "community" / ("issue-" + str(issue["number"]) + ".md")

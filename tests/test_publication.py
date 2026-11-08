@@ -21,16 +21,14 @@ def fixture():
              "state_reason": "completed", "labels": [{"name": "submission:pending"}],
              "body": "### 经历\n\n<!-- uem-submission-v1:" + payload + " -->"}
     return {"action": "closed", "sender": {"login": "FuTseYi"},
-            "repository": {"full_name": "UEM-Feiyue/UEM-Feiyue.github.io"}, "issue": issue}
+            "repository": {"full_name": "UEM-Feiyue/UEM-Feiyue-Site-Source"}, "issue": issue}
 
 
 class PublicationTests(unittest.TestCase):
-    def test_reviewed_commit_triggers_pages_deployment(self):
+    def test_reviewed_commit_triggers_source_publication(self):
         workflow = (ROOT / '.github/workflows/publish-completed-submission.yml').read_text(encoding='utf-8')
-        self.assertIn('actions: write', workflow)
-        self.assertIn("echo 'changed=true' >> \"$GITHUB_OUTPUT\"", workflow)
-        self.assertIn("steps.publish.outputs.changed == 'true'", workflow)
-        self.assertIn('gh workflow run pages.yml --ref main', workflow)
+        self.assertIn('permission-contents: write', workflow)
+        self.assertIn('git push origin HEAD:main', workflow)
 
     def test_import_idempotent_and_safe(self):
         event = fixture()
@@ -38,10 +36,10 @@ class PublicationTests(unittest.TestCase):
             path, created = module.import_event(event, Path(directory))
             self.assertTrue(created)
             self.assertEqual(path.name, "issue-57.md")
-            self.assertIn("source_issue: 57", path.read_text())
+            self.assertIn("source_issue: 57", path.read_text(encoding="utf-8"))
             self.assertIn("college: 某学院", path.read_text(encoding="utf-8"))
             self.assertIn("major: 某专业", path.read_text(encoding="utf-8"))
-            self.assertIn("## 我的经历", path.read_text())
+            self.assertIn("## 我的经历", path.read_text(encoding="utf-8"))
             self.assertFalse(module.import_event(event, Path(directory))[1])
 
     def test_only_maintainer_completed_closure(self):

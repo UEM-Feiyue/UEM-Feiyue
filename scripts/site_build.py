@@ -29,6 +29,7 @@ def build(root, destination, options):
     public_data.mkdir()
     for name in ("schema.json", "articles.json", "demo-submission.md"):
         shutil.copy2(candidate / "data" / name, public_data / name)
+    shutil.copy2(root / "PUBLISHED_README.md", destination / "README.md")
     # Generate a static, self-hosted Pagefind index from actual published articles.
     search = subprocess.run(
         [sys.executable, "-m", "pagefind", "--site", str(destination), "--force-language", "zh"],

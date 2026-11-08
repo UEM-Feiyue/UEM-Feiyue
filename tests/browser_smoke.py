@@ -572,7 +572,7 @@ def main():
                 submissions.append(route.request.post_data_json)
                 route.fulfill(status=201, content_type="application/json",
                               headers={"Access-Control-Allow-Origin": base},
-                              body=json.dumps({"ok": True, "issueUrl": "https://github.com/UEM-Feiyue/UEM-Feiyue.github.io/issues/57"}))
+                              body=json.dumps({"ok": True, "issueUrl": "https://github.com/UEM-Feiyue/UEM-Feiyue-Site-Source/issues/57"}))
             page.route("https://uem-feiyue-submissions.futseyi.workers.dev/submit", accept_submission)
             page.goto(base + "/submit.html", wait_until="networkidle")
             page.wait_for_selector("#body")

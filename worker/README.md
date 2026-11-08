@@ -2,7 +2,7 @@
 
 This independent Cloudflare Worker accepts submissions from the production origin
 `https://uem-feiyue.github.io` and creates **public GitHub Issues** in
-`UEM-Feiyue/UEM-Feiyue.github.io`. It never edits published articles or bypasses
+`UEM-Feiyue/UEM-Feiyue-Site-Source`. It never edits published articles or bypasses
 maintainer review.
 
 ## Configuration
@@ -11,7 +11,7 @@ maintainer review.
 - API: `POST /submit`; public liveness endpoint: `GET /health`.
 - Cloudflare Turnstile widget: restrict to `uem-feiyue.github.io`, action `uem_feiyue_submit`.
 - Worker secrets: `GITHUB_TOKEN` and `TURNSTILE_SECRET`. Never commit their values.
-- GitHub fine-grained PAT: restricted to this repository, **Issues: Read and write** only.
+- GitHub fine-grained PAT: restricted to Source, **Issues: Read and write** only.
 - Create the GitHub label `submission:pending` before enabling public submissions.
 - The native rate limit binding is edge-local: three attempts per minute per IP, not a globally strict quota. The configuration's numeric namespace ID is local to this Worker; ensure it does not collide with another binding in the Cloudflare account.
 - Allowlist the exact production origin only; no wildcard, no preview environment.
@@ -49,7 +49,7 @@ still depends on Cloudflare `SUBMISSION_MODE=public` and `SUBMISSIONS_DISABLED=f
 Do not treat the public browser switch as a security boundary.
 The trusted GitHub Actions importer in `scripts/import_completed_submission.py`
 creates `content/community/issue-<number>.md` only for UEM submission Issues
-closed **as completed by FuTseYi**. Ordinary closures, PRs, invalid markers,
+  closed **as completed by FuTseYi** in Source. Ordinary closures, PRs, invalid markers,
 other users and duplicate imports do not publish. A successful import pushes
 Markdown to main, triggering the existing static site deployment. GitHub Actions
 requires `contents: write` and repository workflow permission to push to main.
