@@ -59,8 +59,22 @@ jobs:
             python preview.py --build-only
             git commit -m "docs: publish reviewed UEM submission #${ISSUE_NUMBER}"
             if git push origin HEAD:main; then
-              gh issue edit "$ISSUE_NUMBER" --remove-label submission:pending --add-label submission:published
+              gh issue edit "$ISSUE_NUMBER" --remove-label submission:pending --remove-label submission:failed --add-label submission:published
               exit 0
             fi
           done
           exit 1
+      - name: Mark publication failure
+        if: ${{ failure() }}
+        run: gh issue edit "$ISSUE_NUMBER" --add-label submission:failed
+
+  dismiss:
+    if: ${{ !github.event.issue.pull_request && startsWith(github.event.issue.title, '[飞跃手册投稿] ') && github.event.issue.state_reason != 'completed' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clear pending review status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: gh issue edit "$ISSUE_NUMBER" --remove-label submission:pending
