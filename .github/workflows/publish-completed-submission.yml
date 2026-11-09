@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   publish:
-    if: ${{ vars.PUBLISH_APP_ID != '' && !github.event.issue.pull_request && startsWith(github.event.issue.title, '[飞跃手册投稿] ') && github.event.issue.state_reason == 'completed' && github.event.sender.login == 'FuTseYi' }}
+    if: ${{ !github.event.issue.pull_request && startsWith(github.event.issue.title, '[飞跃手册投稿] ') && github.event.issue.state_reason == 'completed' && github.event.sender.login == 'FuTseYi' }}
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
