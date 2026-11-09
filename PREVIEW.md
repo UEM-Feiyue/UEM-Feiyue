@@ -1,15 +1,22 @@
 # 开发与发布
 
-在 Source 仓库根目录运行：
+在 Source 仓库根目录按任务选择命令：
+
+**日常预览**：启动本地网站；修改源码后刷新浏览器，结束时按 Ctrl+C。
 
 ```sh
 python preview.py
+```
+
+**提交前检查**：运行 Python 单元测试、Worker 安全测试，再构建完整静态网站。
+
+```sh
 python -m unittest discover -s tests -t . -p 'test_*.py' -v
 node --test tests/worker.test.mjs
 python preview.py --build-only
 ```
 
-Windows 使用 `py -3`。预览默认在 `http://127.0.0.1:8765/`，`--build-only` 只验证并生成 `_site/`。PR 的 `validate.yml` 还运行 Chromium/WebKit 浏览器检查。
+Windows 使用 `py -3` 替代 `python`；Worker 测试需要 Node.js 22+。预览默认在 `http://127.0.0.1:8765/`，`--build-only` 只验证并生成 `_site/`。**界面改动**还需运行 `python tests/browser_smoke.py`；PR 的 `validate.yml` 会运行浏览器检查。
 
 ## 发布与权限
 

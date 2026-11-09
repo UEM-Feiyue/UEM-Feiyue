@@ -1,48 +1,101 @@
-# UEM Feiyue · 应急管理大学飞跃手册
+# UEM-Feiyue-Site-Source
 
-本仓库 `UEM-Feiyue/UEM-Feiyue-Site-Source` 是网站源码与构建入口。`UEM-Feiyue/UEM-Feiyue.github.io` 保存自动生成的静态产物，GitHub Pages 从其 `main` 根目录部署。Source `main` 的 Push 触发测试、一次构建及 GitHub App 跨仓库发布；只有产物变化时才提交 Published。`build-info.json` 记录源码提交与构建运行，Published 的 README 由 `PUBLISHED_README.md` 生成。
+由同学共同维护的应急管理大学考研、留学、就业和考公考编经历分享站。本仓库是唯一的源码与构建入口；生成的静态文件发布到 [UEM-Feiyue.github.io](https://github.com/UEM-Feiyue/UEM-Feiyue.github.io)，由 [GitHub Pages](https://uem-feiyue.github.io/) 托管。
 
-投稿 Worker 创建 Source 中的公开 Issue。维护者以 **Close as completed** 审核后，Source Action 校验投稿内容，用 App 提交 Markdown；该提交再次触发网站发布。投稿与发布的操作步骤见 [PREVIEW.md](PREVIEW.md)。
+> [!WARNING]
+> 投稿会成为公开的 GitHub Issue，包括填写的可选联系方式。提交前请确认内容适合公开；审核通过后才会收录到网站。
 
-由同学共同维护的考研、留学、就业、考公考编经历分享站。视觉以「应急蓝」为主，采用原创蓝色系设计变量（**非经校方确认的标准色值**）。
+## 网站功能
 
-## 本地预览
+- **经历分享**：按考研、留学、就业、考公考编四个方向阅读文章，并按届次筛选。
+- **站内搜索**：使用构建时生成的 Pagefind 索引搜索文章正文。
+- **社区投稿**：Cloudflare Worker 校验投稿并创建 Source Issue；维护者以 **Close as completed** 审核后入库。
+- **阅读体验**：支持浅色、深色与系统主题、移动端导航、文章目录和减少动态效果设置。
 
-```powershell
-py -3 preview.py
+网站采用原创「应急蓝」视觉设计；所用蓝色不是经校方确认的标准色值。演示文章会明确标记，不代表真实投稿。
+
+## 项目结构
+
+```text
+UEM-Feiyue-Site-Source/
+├── .github/workflows/  # PR 验证、审核入库和跨仓库发布
+├── assets/             # 样式、脚本和图片
+├── content/            # 文章与社区投稿 Markdown
+├── data/schema.json    # 投稿分类和字段的唯一规则
+├── scripts/            # 静态构建、索引和审核入库
+├── tests/              # 单元、Worker 和浏览器回归测试
+├── worker/             # Cloudflare 投稿接口
+├── index.html          # 首页及共享页面结构
+├── submit.html         # 投稿页面
+├── community.html      # 社区共建页面
+├── preview.py          # 本地预览与构建入口
+└── PUBLISHED_README.md # Published README 的唯一来源
 ```
 
-macOS / Linux 使用 `python3 preview.py`。访问 <http://127.0.0.1:8765/>；保存内容后自动构建，刷新浏览器查看。仅构建使用 `py -3 preview.py --build-only`。初次运行会按需安装本项目依赖到 `.venv/`；不用额外启动源码目录服务器。
+## 技术栈
 
-投稿表单保留预览与标签页草稿（联系方式不保存）。已实现独立 Cloudflare Worker → 公开 GitHub Issues → 维护者以 Close as completed 审核 → Markdown 自动发布链路。站点公开投稿入口已接入独立 Turnstile 和 Worker；运行时由 Cloudflare `SUBMISSION_MODE` 与 `SUBMISSIONS_DISABLED` 控制，不能仅依赖前端开关。Cloudflare 验证、GitHub Issue 和 Close as completed 发布的维护说明见 [worker/README.md](worker/README.md)。
+- **HTML / CSS / JavaScript**：原生页面、交互与主题
+- **Python / Markdown**：文章生成、内容校验与审核入库
+- **Pagefind**：构建时生成静态全文索引
+- **Cloudflare Worker + Turnstile**：校验投稿并创建 Source Issue
+- **GitHub Actions + GitHub App**：测试、生成网站并用短期 token 发布到 Published
 
-## 页面与内容
+## 本地开发
 
-- 根目录 `index.html`、`submit.html` 和 `community.html` 直接维护首页、投稿与共建联系界面。文章构建复用首页的导航、移动端菜单和页脚，不需要维护额外模板目录。
-- `content/` 保存 Markdown，格式见 [content/README.md](content/README.md)。演示文章继续明确标注，不代表真实投稿。
-- `data/schema.json` 统一分类和字段规则；浏览器表单与 Python 构建都据此校验。扩展字段时先修改此处，再调整业务处理。
-- `scripts/site_build.py` 在隔离目录中生成文章、列表和公开数据，并使用与个人网页一致的 Pagefind 1.5.2 为 `_site/pagefind/` 生成静态全文索引。首页不维护第二套搜索文本：输入关键词时按需加载 Pagefind，文章结果仍可按方向和届次筛选。届次按钮采用紧凑的原生 Popover 增强选择菜单，旧浏览器保留 select 作为无障碍回退。
-- `_site/` 是完整静态产物；只发布页面、资源和明确允许的公开数据，不上传源码根目录。
-
-## 验证与部署
+需要 Python 3.10 或更新版本。在 Source 根目录运行以下命令，启动本地预览：
 
 ```sh
-python3 -m unittest discover -s tests -t . -p 'test_*.py' -v
-python3 preview.py --build-only
-python3 -m pip install -r requirements-dev.txt
-python3 -m playwright install chromium
-python3 tests/browser_smoke.py
+python preview.py
 ```
 
-`main` 推送后，GitHub Actions 构建并发布 `_site/`；Pages Source 应设为 GitHub Actions。Vercel 复用同一构建入口与目录。实际部署是否成功以对应平台结果为准。
+打开 <http://127.0.0.1:8765/>；修改源码后刷新页面即可查看结果，结束时按 Ctrl+C。Windows 可使用 `py -3` 替代 `python`。首次运行会按需安装项目依赖到 `.venv/`。只构建、运行测试或检查浏览器时，按 [PREVIEW.md](PREVIEW.md) 中对应步骤操作。
 
-## 原则
+## 构建与发布
 
-- Every line of code should justify its existence.
-- Define once. Reuse everywhere.
-- 内容优先、原生优先、尽可能少的运行时依赖。
-- 只保留四个方向；文章本身承载经验，不另设指南分类。
-- 联系方式为可选项；未来 Issue 投稿会公开显示所有提交字段。
-- 只有 Close as completed 才应触发后续自动发布，且需验证事件来源及内容。
+**Source**（本仓库）维护页面、文章、投稿审核和唯一的生产构建。**Published**（`UEM-Feiyue/UEM-Feiyue.github.io`）只保存构建结果；GitHub Pages 直接部署其 `main`，不在发布仓库重新构建。Published 的 `README.md` 由 [PUBLISHED_README.md](PUBLISHED_README.md) 生成。
 
-桌面端右侧从更高的自适应校园照片横幅直接开始，跟随系统／浅色／深色三态切换统一放在左侧导航底部；移动端在校园图片上方使用独立的 Logo 与菜单顶部栏，菜单浮层从顶部栏下方平滑展开。首页与分类列表在当前页面切换，地址和浏览器前进后退保持可用，筛选状态随历史记录恢复。文章与投稿保留独立页面；文章目录使用与投稿预览统一的可折叠目录和当前章节提示；投稿输入直接融入内容区，不另设大框。正文输入框随内容自动增长、支持手动拉高；「载入示例」仅加载源码并提供 Markdown 语法说明，不会强制跳转预览。联系方式仅提供公开渠道示例，不自动填入。动画遵循系统的减少动态效果设置。
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Student as 投稿者
+    participant Worker as Cloudflare Worker
+    participant Issue as Source Issue
+    actor Maintainer as 维护者
+    participant Source as Source main
+    participant Action as 发布 Action
+    participant App as GitHub App
+    participant Published as Published main
+    participant Pages as GitHub Pages
+
+    opt 投稿并审核通过
+        Student->>Worker: 提交经历
+        Worker->>Issue: 创建待审核 Issue
+        Maintainer->>Issue: Close as completed
+        Issue->>Source: 审核工作流写入 Markdown
+    end
+    opt 日常代码或内容更新
+        Maintainer->>Source: Push / merge
+    end
+    Source->>Action: main 更新
+    Note over Action: 测试并生成唯一 _site/
+    Action->>App: 申请 Published 短期写入 token
+    App-->>Action: Installation token
+    opt 静态文件实际变化
+        Action->>Published: App Bot 提交构建结果
+        Published->>Pages: 部署静态网站
+    end
+```
+
+发布工作流也支持手动触发。静态文件没有变化时不会产生 Published 提交；`build-info.json` 记录 Source 提交与构建运行。未来如使用 Vercel，应连接 Published 的 `main` 并直接部署同一份静态文件。
+
+## 文档与参与
+
+- [AGENTS.md](AGENTS.md)：工程原则与修改边界
+- [PREVIEW.md](PREVIEW.md)：开发、测试和发布操作
+- [content/README.md](content/README.md)：文章格式与内容维护
+- [worker/README.md](worker/README.md)：Worker 部署与投稿安全配置
+- [PUBLISHED_README.md](PUBLISHED_README.md)：Published README 的唯一来源
+
+欢迎通过 [Issues](https://github.com/UEM-Feiyue/UEM-Feiyue-Site-Source/issues) 反馈资料问题，或通过 [Pull Requests](https://github.com/UEM-Feiyue/UEM-Feiyue-Site-Source/pulls) 参与共建。
+
+**Every line of code should justify its existence. Define once. Reuse everywhere.**
