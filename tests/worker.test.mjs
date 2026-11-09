@@ -34,6 +34,16 @@ test('renders a public, reviewable Issue', () => {
   assert.match(issue.body, /待审核/);
   assert.doesNotMatch(issue.body, /sample-token/);
 });
+test('optional school type is validated and visible to reviewers', () => {
+  assert.equal(validate(valid).institution_type, '');
+  for (const institution_type of ['', '985', '211', 'other']) {
+    assert.equal(validate({ ...valid, category: 'kaoyan', institution_type }).institution_type, institution_type);
+  }
+  for (const payload of [{ ...valid, institution_type: '985' }, { ...valid, category: 'kaoyan', institution_type: 'fake' }]) {
+    assert.equal(validate(payload), null);
+  }
+  assert.match(issueFor(validate({ ...valid, category: 'kaoyan', institution_type: '211' })).body, /211 院校（非985）/);
+});
 test('fails closed before contacting external services', async () => {
   let contacted = false;
   const oldFetch = globalThis.fetch;

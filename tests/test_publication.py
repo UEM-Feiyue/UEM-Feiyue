@@ -25,6 +25,29 @@ def fixture():
 
 
 class PublicationTests(unittest.TestCase):
+    def test_school_type_compatibility_validation_and_publication(self):
+        from scripts import build
+        record = module.decode_issue(fixture()["issue"])
+        self.assertEqual(record["institution_type"], "")
+        with self.assertRaises(ValueError):
+            module.validate_record(dict(record, institution_type="985"))
+        with self.assertRaises(ValueError):
+            module.validate_record(dict(record, category="kaoyan", institution_type="fake"))
+        record.update(category="kaoyan", institution_type="985")
+        event = fixture()
+        event["issue"]["title"] = event["issue"]["title"].replace("[就业]", "[考研]")
+        encoded = base64.urlsafe_b64encode(json.dumps(record).encode()).decode().rstrip("=")
+        event["issue"]["body"] = "<!-- uem-submission-v1:" + encoded + " -->"
+        with tempfile.TemporaryDirectory() as directory:
+            path, _ = module.import_event(event, Path(directory))
+            meta, body = build.parse(path)
+            self.assertEqual(meta["institution_type"], "985")
+            self.assertIn("985 院校</p>", build.render(meta, body, "articles/test.html"))
+            meta["category"] = "career"
+            path.write_text("---\n" + build.yaml.safe_dump(meta) + "---\n" + body, encoding="utf-8")
+            with self.assertRaises(ValueError):
+                build.parse(path)
+
     def test_reviewed_commit_triggers_source_publication(self):
         workflow = (ROOT / '.github/workflows/publish-completed-submission.yml').read_text(encoding='utf-8')
         deploy = (ROOT / '.github/workflows/deploy.yml').read_text(encoding='utf-8')

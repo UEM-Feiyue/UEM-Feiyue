@@ -347,6 +347,13 @@ def main():
                     page.locator("#year").fill("abcd")
                     assert not page.locator("#year").evaluate("el => el.checkValidity()")
                     page.locator("#year").fill("2026")
+                    assert page.locator('#institution_type').input_value() == ''
+                    page.locator('#institution_type').select_option('985')
+                    page.locator('#category').select_option('career')
+                    assert page.locator('#institution_type').is_hidden()
+                    assert page.locator('#institution_type').input_value() == ''
+                    page.locator('#category').select_option('kaoyan')
+                    page.locator('#institution_type').select_option('211')
                     assert page.locator(".education-fields legend").inner_text() == "在校信息"
                     assert not page.locator("#college").evaluate("el => el.checkValidity()")
                     page.locator("#college").fill("某学院")
@@ -372,6 +379,7 @@ def main():
                     page.locator("#contact").fill("do-not-save@example.invalid")
                     page.locator("#preview-button").click()
                     assert page.locator("#preview").is_visible()
+                    assert '211 院校（非985）' in page.locator('#preview .article-byline').inner_text()
                     assert page.locator("#preview .article-body strong").count() == 1, page.locator("#preview-text").inner_html()
                     assert page.locator("#preview .article-body strong").inner_text() == "Test body"
                     assert not page.evaluate("Boolean(window.__unsafe)")
@@ -385,6 +393,7 @@ def main():
                     page.reload(wait_until="networkidle")
                     page.wait_for_selector("#body")
                     assert page.locator("#author").input_value() == "Browser test"
+                    assert page.locator('#institution_type').input_value() == '211'
                     assert page.locator("#contact").input_value() == ""
                     assert page.locator("#body").evaluate("el => el.scrollHeight <= el.clientHeight + 3")
                     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 2")
@@ -422,7 +431,7 @@ def main():
             page.goto(base + "/?view=all", wait_until="networkidle")
             page.evaluate("window.__sameDocument = true")
             page.locator('#category-nav [data-category="career"]').click()
-            page.wait_for_function("location.search === '?category=career' && !document.querySelector('#archive-section').hidden")
+            page.wait_for_function("location.search === '?category=career' && document.querySelector('#category-nav [aria-current]')?.dataset.category === 'career'")
             assert page.evaluate("window.__sameDocument")
             page.keyboard.press("Control+k")
             assert page.locator('#search-dialog').evaluate("el => el.open")
@@ -576,7 +585,8 @@ def main():
             page.route("https://uem-feiyue-submissions.futseyi.workers.dev/submit", accept_submission)
             page.goto(base + "/submit.html", wait_until="networkidle")
             page.wait_for_selector("#body")
-            page.locator("#category").select_option("career")
+            page.locator("#category").select_option("kaoyan")
+            page.locator("#institution_type").select_option("985")
             page.locator("#author").fill("测试同学")
             page.locator("#year").fill("2026")
             page.locator("#college").fill("某学院")
@@ -589,7 +599,8 @@ def main():
             assert page.locator("#submission-status").get_attribute("data-state") == "success"
             assert page.locator("#submit-button").inner_text() == "投稿分享"
             assert len(submissions) == 1
-            assert submissions[0]["category"] == "career"
+            assert submissions[0]["category"] == "kaoyan"
+            assert submissions[0]["institution_type"] == "985"
             assert submissions[0]["college"] == "某学院"
             assert submissions[0]["major"] == "某专业"
             assert submissions[0]["turnstileToken"] == "test-token"

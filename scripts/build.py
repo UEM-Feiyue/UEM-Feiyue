@@ -45,6 +45,12 @@ def parse(path):
         if not isinstance(value, (str, int)) or isinstance(value, bool):
             raise ValueError(f"{path}: invalid {name}")
         value = str(value).strip()
+        if value and field.get("category") and field["category"] != meta["category"]:
+            raise ValueError(f"{path}: {name} does not apply to category")
+        if value and field.get("options") and value not in {option["value"] for option in field["options"]}:
+            raise ValueError(f"{path}: invalid {name}")
+        if field.get("options") and name in meta:
+            meta[name] = value
         if field.get("required") and not value:
             raise ValueError(f"{path}: missing {name}")
         if field.get("maxLength") and len(value) > field["maxLength"]:
@@ -100,6 +106,9 @@ def render(meta, body, url):
     rendered = markdown.markdown(html.escape(body), extensions=["extra", "toc", "sane_lists", "pymdownx.tilde", "pymdownx.tasklist"], extension_configs={"toc": {"slugify": slugify_unicode}})
     clean = bleach.clean(rendered, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRS, protocols=["http", "https", "mailto"], strip=True)
     byline = " · ".join(html.escape(display_year(meta[k]) if k == "year" else str(meta[k])) for k in ("author", "year", "college", "major") if meta.get(k))
+    if meta.get("institution_type"):
+        field = next(field for field in SCHEMA["fields"] if field["name"] == "institution_type")
+        byline += " · " + html.escape(next(option["label"] for option in field["options"] if option["value"] == meta["institution_type"]))
     headings = re.findall(r'<h([23]) id="([^"]+)">(.+?)</h[23]>', clean)
     toc = '<details class="article-toc"><summary>本页目录</summary><div class="article-toc-panel"><div class="article-toc-clip"><ul>' + ''.join(f'<li class="toc-depth-{level}"><a href="#{html.escape(anchor, quote=True)}">{text}</a></li>' for level, anchor, text in headings) + '</ul></div></div></details>' if len(headings) >= 2 else ''
     demo = '<span class="demo-badge">演示</span>' if meta.get('demo') is True else ''
