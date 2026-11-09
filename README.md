@@ -2,9 +2,6 @@
 
 由同学共同维护的应急管理大学考研、留学、就业和考公考编经历分享站。本仓库是唯一的源码与构建入口；生成的静态文件发布到 [UEM-Feiyue.github.io](https://github.com/UEM-Feiyue/UEM-Feiyue.github.io)，由 [GitHub Pages](https://uem-feiyue.github.io/) 托管。
 
-> [!WARNING]
-> 投稿会成为公开的 GitHub Issue，包括填写的可选联系方式。提交前请确认内容适合公开；审核通过后才会收录到网站。
-
 ## 网站功能
 
 - **经历分享**：按考研、留学、就业、考公考编四个方向阅读文章，并按届次筛选。
