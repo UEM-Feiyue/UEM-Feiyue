@@ -20,7 +20,7 @@ Windows 使用 `py -3` 替代 `python`；Worker 测试需要 Node.js 22+。预�
 
 ## 发布与权限
 
-Source 的 `deploy.yml` 在 `main` Push 后测试、构建 `_site/`，并用安装于 Source 和 Published 的 `UEM Feiyue Site Automation` App 将变化后的产物推送到 Published `main`。Source Actions 保存 Variable `PUBLISH_APP_ID` 与 Secret `PUBLISH_APP_PRIVATE_KEY`；缺少 App ID 时发布任务跳过。Published 的 Pages 从 `main` 根目录部署。通过 Published 的 `build-info.json` 核对源码提交和构建运行；产物未变化时不会生成新提交。
+Source 的 `deploy.yml` 在 `main` Push 后测试、构建 `_site/`，并用安装于 Source 和 Published 的 `UEM Feiyue Site Automation` App 将变化后的产物推送到 Published `main`。Source Actions 保存 Variable `PUBLISH_APP_ID` 与 Secret `PUBLISH_APP_PRIVATE_KEY`；缺少凭据会使发布失败，不会静默跳过。Published 的 Pages 从 `main` 根目录部署。通过 Published 的 `build-info.json` 核对源码提交和构建运行；产物未变化时不会生成新提交。
 
 投稿 Worker 使用仅有 **Issues: Read and write** 权限的 `UEM-Feiyue-Submissions` 令牌创建 Source Issue。它的生产开关位于 Cloudflare，见 `worker/README.md`。不要将令牌扩大为代码写权限。维护者以 Close as completed 审核有效投稿时，Source 的 `publish-completed-submission.yml` 验证 Issue 及内容、用 App 提交 Markdown；Source Push 随后触发静态发布。Close as not planned 只清除待审标签，不生成内容。对真实投稿执行 completed 审核前应核对公开正文与联系信息。
 

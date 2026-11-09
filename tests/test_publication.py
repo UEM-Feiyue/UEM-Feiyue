@@ -27,8 +27,10 @@ def fixture():
 class PublicationTests(unittest.TestCase):
     def test_reviewed_commit_triggers_source_publication(self):
         workflow = (ROOT / '.github/workflows/publish-completed-submission.yml').read_text(encoding='utf-8')
+        deploy = (ROOT / '.github/workflows/deploy.yml').read_text(encoding='utf-8')
         self.assertIn('permission-contents: write', workflow)
         self.assertIn('git push origin HEAD:main', workflow)
+        self.assertNotIn("vars.PUBLISH_APP_ID != ''", workflow + deploy)
 
     def test_import_idempotent_and_safe(self):
         event = fixture()
