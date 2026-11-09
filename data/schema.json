@@ -76,16 +76,17 @@
     },
     {
       "name": "institution_type",
-      "label": "录取院校类型",
+      "label": "录取院校层次",
       "type": "select",
       "required": false,
       "category": "kaoyan",
       "options": [
-        {"value": "", "label": "暂不填写"},
+        {"value": "", "label": "请选择录取院校层次"},
         {"value": "985", "label": "985 院校"},
         {"value": "211", "label": "211 院校（非985）"},
         {"value": "other", "label": "其他院校 / 科研院所"}
-      ]
+      ],
+      "requiredOnSubmit": true
     },
     {
       "name": "program",
@@ -98,7 +99,8 @@
         "overseas": "例如 MSc@CS",
         "career": "例如 前端工程师",
         "public": "例如 综合管理岗"
-      }
+      },
+      "requiredOnSubmit": true
     },
     {
       "name": "body",
@@ -115,8 +117,41 @@
       "type": "textarea",
       "required": false,
       "placeholder": "例如：邮箱 hello@example.com\n微信：example_id\nGitHub：github.com/yourname",
-      "hint": "可以留下邮箱、微信号、QQ 或 GitHub 等联系渠道，只填写愿意向所有访客公开的信息；不必填写真实手机号。",
-      "maxLength": 500
+      "hint": "联系方式选填，最多添加 4 项，合计最多 500 字。填写的内容都会出现在公开 GitHub Issue 中。",
+      "maxLength": 500,
+      "maxEntries": 4,
+      "channels": [
+        {
+          "label": "QQ",
+          "type": "text",
+          "placeholder": "填写 QQ 号"
+        },
+        {
+          "label": "微信",
+          "type": "text",
+          "placeholder": "填写微信号"
+        },
+        {
+          "label": "邮箱",
+          "type": "email",
+          "placeholder": "hello@example.com"
+        },
+        {
+          "label": "其他",
+          "type": "text",
+          "placeholder": "其他愿意公开的联系方式"
+        }
+      ]
+    },
+    {
+      "name": "show_contact",
+      "label": "在文章中显示联系方式",
+      "type": "checkbox",
+      "required": false,
+      "value": "yes",
+      "default": "no",
+      "pattern": "yes|no",
+      "hint": "默认不在文章中显示；无论是否勾选，填写的联系方式都会出现在公开 GitHub Issue 中。"
     }
   ]
 }

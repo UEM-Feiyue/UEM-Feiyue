@@ -52,6 +52,7 @@ def main():
                     page.goto(base + PREFIX + "/", wait_until="networkidle")
                     assert page.locator("h1:visible").count() == 1
                     assert page.locator(".article-item .article-meta").first.inner_text().endswith("某学院 · 某专业")
+                    assert page.locator('.article-item[data-category="kaoyan"] .article-meta').inner_text().endswith('985 院校')
                     assert page.locator(".article-item h3").first.inner_text().startswith(articles[0]["author"] + " — ")
                     assert page.locator(".article-item").first.evaluate("el => el.querySelector('h3').compareDocumentPosition(el.querySelector('.article-meta')) & Node.DOCUMENT_POSITION_FOLLOWING")
                     # A bounded image banner retains aspect ratio at desktop/mobile sizes.
@@ -351,6 +352,7 @@ def main():
                     page.locator('#institution_type').select_option('985')
                     page.locator('#category').select_option('career')
                     assert page.locator('#institution_type').is_hidden()
+                    assert not page.locator('#institution_type').evaluate('el => el.required')
                     assert page.locator('#institution_type').input_value() == ''
                     page.locator('#category').select_option('kaoyan')
                     page.locator('#institution_type').select_option('211')
@@ -360,6 +362,10 @@ def main():
                     assert not page.locator("#major").evaluate("el => el.checkValidity()")
                     page.locator("#major").fill("某专业")
                     page.locator("#destination").fill("Example institution")
+                    page.locator("#program").fill("测试专业")
+                    assert page.locator("#program").evaluate("el => el.required")
+                    assert not page.locator(".contact-row input").evaluate("el => el.required")
+                    assert page.locator("#institution_type").evaluate("el => el.required")
                     assert page.locator("#year").evaluate("el => el.getBoundingClientRect().width < 120")
                     assert "hello@example.com" in page.locator("#contact").get_attribute("placeholder")
                     assert page.locator("#body").evaluate("el => el.getBoundingClientRect().height >= 240")
@@ -376,9 +382,29 @@ def main():
                     assert "## 小标题" in page.locator(".markdown-help").inner_text()
                     page.locator("#body").fill("")
                     page.locator("#body").fill("## Heading\n\n**Test body**\n\n<script>window.__unsafe = true</script>")
-                    page.locator("#contact").fill("do-not-save@example.invalid")
+                    page.locator('#preview-button').click()
+                    assert page.locator('#preview').is_visible()
+                    assert page.locator('#preview .article-contact').count() == 0
+                    page.locator('.contact-row select').first.select_option('2')
+                    page.locator('.contact-row input').first.fill('invalid-email')
+                    assert not page.locator('.contact-row input').first.evaluate('el => el.checkValidity()')
+                    page.locator('.contact-row input').first.fill('do-not-save@example.invalid')
+                    page.locator('.contact-add').click()
+                    page.locator('.contact-row input').last.fill('123456')
+                    assert page.locator('#contact').input_value() == '邮箱：do-not-save@example.invalid\nQQ：123456'
+                    assert 'do-not-save' not in page.evaluate("sessionStorage.getItem('uem-draft-v1')")
+                    page.locator('#institution_type').select_option('')
+                    page.locator('#preview-button').click()
+                    assert page.locator('#preview').is_hidden()
+                    page.locator('#institution_type').select_option('211')
+                    assert not page.locator('#show_contact').is_checked()
+                    page.locator('#preview-button').click()
+                    assert page.locator('#preview').is_visible()
+                    assert page.locator('#preview .article-contact').count() == 0
+                    page.locator('#show_contact').check()
                     page.locator("#preview-button").click()
                     assert page.locator("#preview").is_visible()
+                    assert "do-not-save@example.invalid" in page.locator("#preview .article-contact").inner_text()
                     assert '211 院校（非985）' in page.locator('#preview .article-byline').inner_text()
                     assert page.locator("#preview .article-body strong").count() == 1, page.locator("#preview-text").inner_html()
                     assert page.locator("#preview .article-body strong").inner_text() == "Test body"
@@ -395,6 +421,27 @@ def main():
                     assert page.locator("#author").input_value() == "Browser test"
                     assert page.locator('#institution_type').input_value() == '211'
                     assert page.locator("#contact").input_value() == ""
+                    assert page.locator('.contact-row').count() == 1
+                    assert page.locator('.contact-row input').input_value() == ''
+                    if width == 390 and theme == 'light':
+                        for _ in range(3):
+                            page.locator('.contact-add').click()
+                        assert page.locator('.contact-row').count() == 4
+                        assert page.locator('.contact-add').is_disabled()
+                        page.locator('.contact-remove').last.click()
+                        assert not page.locator('.contact-add').is_disabled()
+                        page.locator('.contact-add').click()
+                        assert page.locator('.contact-row').count() == 4
+                    while page.locator('.contact-row').count():
+                        page.locator('.contact-remove').first.click()
+                    assert page.locator('.contact-row').count() == 0
+                    assert page.locator('#contact').input_value() == ''
+                    assert page.locator('.contact-add').evaluate('el => el === document.activeElement')
+                    page.locator('#preview-button').click()
+                    assert page.locator('#preview').is_visible()
+                    assert page.locator('#preview .article-contact').count() == 0
+                    page.locator('.contact-add').click()
+                    assert page.locator('.contact-row').count() == 1
                     assert page.locator("#body").evaluate("el => el.scrollHeight <= el.clientHeight + 3")
                     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 2")
                     assert errors == [], errors
@@ -508,6 +555,9 @@ def main():
             page.locator("#major").fill("某专业")
             page.locator("#destination").fill("某理工类高校")
             page.locator("#program").fill("安全工程相关专业")
+            page.locator("#institution_type").select_option("985")
+            page.locator('.contact-row select').first.select_option('3')
+            page.locator('.contact-row input').first.fill('不公开')
             page.locator("#body").fill(demo_body)
             page.locator("#preview-button").click()
             assert page.locator("#preview").is_visible()
@@ -592,6 +642,19 @@ def main():
             page.locator("#college").fill("某学院")
             page.locator("#major").fill("某专业")
             page.locator("#destination").fill("某公司")
+            page.locator("#program").fill("测试岗位")
+            page.locator('.contact-row select').first.select_option('2')
+            page.locator('.contact-row input').first.fill('test@example.com')
+            page.locator('.contact-add').click()
+            page.locator('.contact-row input').last.fill('123456')
+            page.locator('.contact-row .contact-remove').last.click()
+            assert page.locator('#contact').input_value() == '邮箱：test@example.com'
+            page.locator('.contact-add').click()
+            page.locator('.contact-row select').last.select_option('1')
+            page.locator('.contact-row input').last.fill('wechat_demo')
+            page.locator('.contact-row input').first.fill('x' * 500)
+            assert not page.locator('.contact-row input').first.evaluate('el => el.checkValidity()')
+            page.locator('.contact-row input').first.fill('test@example.com')
             page.locator("#body").fill("## 完整经历\\n\\n测试内容")
             page.wait_for_function("!document.querySelector('#submit-button').disabled", timeout=10000)
             page.locator("#submit-button").click()
@@ -601,10 +664,14 @@ def main():
             assert len(submissions) == 1
             assert submissions[0]["category"] == "kaoyan"
             assert submissions[0]["institution_type"] == "985"
+            assert submissions[0]["contact"] == "邮箱：test@example.com\n微信：wechat_demo"
+            assert submissions[0].get("show_contact", "no") == "no"
             assert submissions[0]["college"] == "某学院"
             assert submissions[0]["major"] == "某专业"
             assert submissions[0]["turnstileToken"] == "test-token"
             assert page.locator("#author").input_value() == ""
+            assert page.locator('.contact-row').count() == 1
+            assert page.locator('.contact-row input').input_value() == ''
             context.close()
             # The actual preview server must not load Turnstile on localhost.
             preview_server = ThreadingHTTPServer(("127.0.0.1", 0), partial(PreviewHandler, directory=str(ROOT / "_site")))

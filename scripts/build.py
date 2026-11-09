@@ -101,18 +101,25 @@ def shared_chrome(source, page, prefix="./", category=None):
     return source
 
 
+def institution_label(meta):
+    if meta.get("category") != "kaoyan" or not meta.get("institution_type"):
+        return ""
+    field = next(field for field in SCHEMA["fields"] if field["name"] == "institution_type")
+    return next(option["label"] for option in field["options"] if option["value"] == meta["institution_type"])
+
+
 def render(meta, body, url):
     # Escape inline HTML before Markdown conversion; sanitize generated HTML too.
     rendered = markdown.markdown(html.escape(body), extensions=["extra", "toc", "sane_lists", "pymdownx.tilde", "pymdownx.tasklist"], extension_configs={"toc": {"slugify": slugify_unicode}})
     clean = bleach.clean(rendered, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRS, protocols=["http", "https", "mailto"], strip=True)
     byline = " · ".join(html.escape(display_year(meta[k]) if k == "year" else str(meta[k])) for k in ("author", "year", "college", "major") if meta.get(k))
-    if meta.get("institution_type"):
-        field = next(field for field in SCHEMA["fields"] if field["name"] == "institution_type")
-        byline += " · " + html.escape(next(option["label"] for option in field["options"] if option["value"] == meta["institution_type"]))
+    school = institution_label(meta)
+    if school:
+        byline += " · " + html.escape(school)
     headings = re.findall(r'<h([23]) id="([^"]+)">(.+?)</h[23]>', clean)
     toc = '<details class="article-toc"><summary>本页目录</summary><div class="article-toc-panel"><div class="article-toc-clip"><ul>' + ''.join(f'<li class="toc-depth-{level}"><a href="#{html.escape(anchor, quote=True)}">{text}</a></li>' for level, anchor, text in headings) + '</ul></div></div></details>' if len(headings) >= 2 else ''
     demo = '<span class="demo-badge">演示</span>' if meta.get('demo') is True else ''
-    contact = f'<aside class="article-contact"><strong>联系作者</strong><p>{html.escape(str(meta["contact"]))}</p></aside>' if meta.get("contact") else ""
+    contact = f'<aside class="article-contact"><strong>联系作者</strong><p>{html.escape(str(meta["contact"]))}</p></aside>' if meta.get("contact") and meta.get("show_contact", "yes") == "yes" else ""
     source = shared_chrome((ROOT / "index.html").read_text(encoding="utf-8"), "article", "../", meta["category"])
     source = source.replace("<body data-pagefind-ignore>", "<body>", 1)
     title = html.escape(display_title(meta))
@@ -129,7 +136,7 @@ def render_home(entries):
     for entry in entries:
         badge = '<span class="demo-badge">演示</span>' if entry["demo"] else ''
         esc = lambda value: html.escape(str(value), quote=True)
-        label = ' · '.join(filter(None, (entry["year"] + ' 届', entry["college"], entry["major"])))
+        label = ' · '.join(filter(None, (entry["year"] + ' 届', entry["college"], entry["major"], institution_label(entry))))
         cards.append(f'<article class="article-item" data-category="{esc(entry["category"])}" data-year="{esc(entry["year"])}" data-demo="{str(entry["demo"]).lower()}">{badge}<h3><a href="./{esc(entry["url"])}">{esc(entry["author"])} — {esc(entry["title"])}</a></h3><p class="article-meta">{esc(label)}</p><a class="article-more" href="./{esc(entry["url"])}">阅读全文<span class="link-arrow"></span></a></article>')
     source = re.sub(r'(<div id="articles"[^>]*>).*?(</div>)', lambda m: m[1] + ''.join(cards) + m[2], source, count=1, flags=re.S)
     years = ''.join(f'<option value="{html.escape(year, quote=True)}">{html.escape(year)}</option>' for year in sorted({entry["year"] for entry in entries}, reverse=True))
@@ -165,6 +172,7 @@ def main():
             "major": str(meta.get("major", "")),
             "program": str(meta.get("program", "")),
             "destination": str(meta.get("destination", "")),
+            "institution_type": str(meta.get("institution_type", "")),
             "excerpt": str(meta.get("excerpt") or re.sub(r"\s+", " ", re.sub(r"[#*_`]", "", body))[:150]),
             "tags": meta.get("tags", []),
             "url": url,

@@ -29,13 +29,15 @@
     for (const field of schema.fields) {
       const wrapper = make('div');
       wrapper.className = 'field';
-      const label = make('label', field.label + (field.required ? ' *' : '（选填）'));
+      const required = Boolean(field.required || field.requiredOnSubmit);
+      const label = make('label', field.type === 'checkbox' ? field.label : field.label + (required ? ' *' : '（选填）'));
       label.htmlFor = field.name;
       const control = make(['textarea', 'select'].includes(field.type) ? field.type : 'input');
       for (const option of field.options || []) control.add(new Option(option.label, option.value));
       control.id = field.name;
       control.name = field.name;
-      control.required = Boolean(field.required);
+      control.required = required;
+      if (field.value) control.value = field.value;
       if (control.tagName === 'INPUT') control.type = field.type;
       if (field.maxLength) control.maxLength = field.maxLength;
       if (field.placeholder) control.placeholder = field.placeholder;
@@ -43,7 +45,10 @@
       if (field.pattern) control.pattern = field.pattern;
       if (field.type === 'textarea') control.rows = field.name === 'body' ? 9 : 3;
       wrapper.append(label);
-      if (field.suffix) {
+      if (field.type === 'checkbox') {
+        wrapper.classList.add('checkbox-field');
+        label.prepend(control);
+      } else if (field.suffix) {
         const inputRow = make('div');
         inputRow.className = 'input-suffix';
         inputRow.append(control, make('span', field.suffix));
@@ -57,6 +62,70 @@
         hint.id = field.name + '-hint';
         control.setAttribute('aria-describedby', hint.id);
         wrapper.append(hint);
+      }
+      if (field.channels) {
+        // Keep the existing contact payload; edit each contact as a separate row.
+        control.hidden = true;
+        control.required = false;
+        label.removeAttribute('for');
+        label.id = field.name + '-label';
+        wrapper.setAttribute('role', 'group');
+        wrapper.setAttribute('aria-labelledby', label.id);
+        const rows = make('div');
+        rows.className = 'contact-rows';
+        const add = make('button', '添加联系方式');
+        add.type = 'button';
+        add.className = 'secondary-button contact-add';
+        const sync = () => {
+          const lines = [];
+          for (const row of rows.children) {
+            const input = row.querySelector('input');
+            const channel = field.channels[row.querySelector('select').value];
+            input.type = channel.type;
+            input.placeholder = channel.placeholder;
+            input.setAttribute('aria-label', channel.label + '联系方式');
+            input.setCustomValidity('');
+            if (input.value.trim()) lines.push(channel.label + '：' + input.value.trim());
+          }
+          control.value = lines.join('\n');
+          add.disabled = rows.children.length >= field.maxEntries;
+          for (const input of rows.querySelectorAll('input')) input.required = required && !lines.length;
+          const first = rows.querySelector('input');
+          if (required && !lines.length) first.setCustomValidity('请至少填写一种联系方式。');
+          if (control.value.length > field.maxLength) first.setCustomValidity('联系方式合计不能超过 ' + field.maxLength + ' 字。');
+        };
+        const addRow = () => {
+          if (rows.children.length >= field.maxEntries) return;
+          const row = make('div');
+          row.className = 'contact-row';
+          const type = make('select');
+          type.setAttribute('aria-label', '联系方式类型');
+          field.channels.forEach((channel, index) => type.add(new Option(channel.label, index)));
+          const input = make('input');
+          input.maxLength = field.maxLength;
+          input.setAttribute('aria-describedby', field.name + '-hint');
+          const remove = make('button', '移除');
+          remove.type = 'button';
+          remove.className = 'contact-remove';
+          remove.setAttribute('aria-label', '移除此项联系方式');
+          remove.addEventListener('click', () => {
+            row.remove();
+            if (required && !rows.children.length) addRow();
+            sync();
+            (rows.querySelector('input') || add).focus();
+            form.dispatchEvent(new Event('input', {bubbles: true}));
+          });
+          row.append(type, input, remove);
+          row.addEventListener('input', sync);
+          row.addEventListener('change', sync);
+          rows.append(row);
+          sync();
+          return input;
+        };
+        add.addEventListener('click', () => addRow()?.focus());
+        form.addEventListener('reset', () => { rows.replaceChildren(); addRow(); });
+        wrapper.append(rows, add);
+        addRow();
       }
       if (field.name === 'body') {
         const toolbar = make('div');
@@ -151,7 +220,7 @@
             // syntax before switching to the rendered preview themselves.
             if (!bodyPreview.hidden) bodyPreviewButton.click();
             control.focus();
-            draftStatus.textContent = '已载入带有 Markdown 格式的示例；可自行查看语法说明或点击「预览排版」。';
+            draftStatus.textContent = '已载入正文示例；基本信息请在上方表单填写，考研须选择录取院校层次，完整预览时会自动显示。';
           } catch { draftStatus.textContent = '示例加载失败，请稍后重试。'; }
         });
         clearBody.addEventListener('click', () => {
@@ -230,6 +299,7 @@
         const control = controls.get(field.name);
         control.disabled = field.category !== category.value;
         control.closest('.field').hidden = control.disabled;
+        control.required = !control.disabled && Boolean(field.required || field.requiredOnSubmit);
         if (control.disabled) control.value = '';
       }
     };
@@ -242,7 +312,10 @@
       if (draft) {
         for (const [name, value] of Object.entries(draft)) {
           const control = name === 'category' ? category : controls.get(name);
-          if (control && name !== 'contact' && typeof value === 'string') control.value = value;
+          if (control && name !== 'contact' && typeof value === 'string') {
+            if (control.type === 'checkbox') control.checked = value === control.value;
+            else control.value = value;
+          }
         }
         draftStatus.textContent = '已恢复当前标签页的草稿（不含联系方式），尚未提交。';
       }
@@ -322,7 +395,7 @@
     button.addEventListener('click', () => {
       for (const field of schema.fields) {
         const control = controls.get(field.name);
-        control.setCustomValidity(field.required && !control.value.trim() ? '请填写' + field.label : '');
+        control.setCustomValidity(!control.disabled && control.required && !control.value.trim() ? '请填写' + field.label : '');
       }
       if (!form.reportValidity()) return;
       const data = new FormData(form);
@@ -349,7 +422,7 @@
       previewText.append(body);
       if (toc) window.initArticleToc?.(previewText);
       const contact = String(data.get('contact') || '').trim();
-      if (contact) {
+      if (contact && data.get('show_contact') === 'yes') {
         const aside = make('aside');
         aside.className = 'article-contact';
         aside.append(make('strong', '联系作者'), make('p', contact));

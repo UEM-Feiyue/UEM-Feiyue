@@ -58,13 +58,14 @@ function validate(payload) {
       payload.turnstileToken.length < 1 || payload.turnstileToken.length > 2048) return null;
   const record = { version: 1, category: payload.category };
   for (const field of schema.fields) {
-    const value = payload[field.name] ?? '';
+    const value = payload[field.name] ?? field.default ?? '';
     if (typeof value !== 'string' || CONTROL.test(value)) return null;
-    const clean = value.trim();
+    const clean = value.trim() || field.default || '';
     if (clean && field.category && field.category !== payload.category) return null;
     if (clean && field.options && !field.options.some(option => option.value === clean)) return null;
-    if (field.required && !clean) return null;
+    if ((field.required || field.requiredOnSubmit) && (!field.category || field.category === payload.category) && !clean) return null;
     if (field.maxLength && clean.length > field.maxLength) return null;
+    if (field.maxEntries && clean.split(/\r\n|\r|\n/).filter(line => line.trim()).length > field.maxEntries) return null;
     if (field.pattern && clean && !(new RegExp('^(?:' + field.pattern + ')$')).test(clean)) return null;
     record[field.name] = clean;
   }
@@ -97,6 +98,7 @@ function issueFor(record) {
     ...(record.institution_type ? ['**' + school.label + '：** ' + school.options.find(option => option.value === record.institution_type).label] : []),
     '**专业 / 项目 / 岗位：** ' + (record.program || '未填写'), '',
     '### 经历正文', quote(record.body), '',
+    '**文章显示联系方式：** ' + (record.show_contact === 'yes' ? '是' : '否（Issue 中仍公开）'),
     '### 联系方式', record.contact ? quote(record.contact) : '> 未填写', '',
     '<!-- uem-submission-v1:' + base64url(record) + ' -->'
   ];

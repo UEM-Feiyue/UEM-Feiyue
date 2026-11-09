@@ -6,7 +6,7 @@ const valid = {
   version: 1, category: 'career', author: '张同学', year: '2026',
   college: '某学院', major: '软件工程',
   destination: '某科技公司', program: '软件工程师',
-  body: '我准备了项目经历和面试。', contact: '', turnstileToken: 'sample-token'
+  body: '我准备了项目经历和面试。', contact: 'test@example.com', turnstileToken: 'sample-token'
 };
 const request = (body = valid, origin = 'https://uem-feiyue.github.io') =>
   new Request('https://worker.example/submit', {
@@ -34,15 +34,34 @@ test('renders a public, reviewable Issue', () => {
   assert.match(issue.body, /待审核/);
   assert.doesNotMatch(issue.body, /sample-token/);
 });
-test('optional school type is validated and visible to reviewers', () => {
+test('school type is required only for postgraduate submissions', () => {
   assert.equal(validate(valid).institution_type, '');
-  for (const institution_type of ['', '985', '211', 'other']) {
+  for (const institution_type of ['985', '211', 'other']) {
     assert.equal(validate({ ...valid, category: 'kaoyan', institution_type }).institution_type, institution_type);
   }
+  assert.equal(validate({ ...valid, category: 'kaoyan', institution_type: '' }), null);
   for (const payload of [{ ...valid, institution_type: '985' }, { ...valid, category: 'kaoyan', institution_type: 'fake' }]) {
     assert.equal(validate(payload), null);
   }
   assert.match(issueFor(validate({ ...valid, category: 'kaoyan', institution_type: '211' })).body, /211 院校（非985）/);
+});
+test('all applicable content fields are required and contact remains public in Issues', () => {
+  for (const name of ['author', 'year', 'college', 'major', 'destination', 'program', 'body']) {
+    assert.equal(validate({ ...valid, [name]: '' }), null, name);
+  }
+  assert.equal(validate({ ...valid, contact: '' }).contact, '');
+  assert.equal(validate({ ...valid, contact: Array(4).fill('QQ：123456').join('\n') }).category, 'career');
+  assert.equal(validate({ ...valid, contact: Array(5).fill('QQ：123456').join('\n') }), null);
+  const { contact, ...withoutContact } = valid;
+  assert.equal(validate(withoutContact).contact, '');
+  assert.equal(validate(valid).show_contact, 'no');
+  assert.equal(validate({ ...valid, show_contact: '' }).show_contact, 'no');
+  assert.equal(validate({ ...valid, show_contact: 'invalid' }), null);
+  for (const show_contact of ['yes', 'no']) {
+    const record = validate({ ...valid, show_contact });
+    assert.equal(record.show_contact, show_contact);
+    assert.match(issueFor(record).body, /test@example.com/);
+  }
 });
 test('fails closed before contacting external services', async () => {
   let contacted = false;

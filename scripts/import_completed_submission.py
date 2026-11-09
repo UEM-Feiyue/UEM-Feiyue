@@ -20,7 +20,7 @@ def validate_record(value):
     if value.get("category") not in {x["id"] for x in SCHEMA["categories"]}:
         raise ValueError("Invalid category")
     # Older version-1 Issues lack this new optional field.
-    value = {"institution_type": "", **value}
+    value = {"institution_type": "", "show_contact": "yes", **value}
     allowed = {"version", "category"} | {x["name"] for x in SCHEMA["fields"]}
     if set(value) != allowed:
         raise ValueError("Unexpected or missing fields")
@@ -28,6 +28,8 @@ def validate_record(value):
         item = value[field["name"]]
         if not isinstance(item, str) or re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", item):
             raise ValueError("Invalid field type")
+        if not item and field.get("default"):
+            item = value[field["name"]] = field["default"]
         if item and field.get("category") and field["category"] != value["category"]:
             raise ValueError("Field does not apply to category")
         if item and field.get("options") and item not in {option["value"] for option in field["options"]}:
@@ -79,7 +81,7 @@ def import_event(event, root=ROOT):
     target = root / "content" / "community" / ("issue-" + str(issue["number"]) + ".md")
     if target.exists():
         return target, False
-    frontmatter = {name: record[name] for name in ("category", "author", "year", "college", "major", "destination", "institution_type", "program", "contact") if record[name]}
+    frontmatter = {name: record[name] for name in ("category", "author", "year", "college", "major", "destination", "institution_type", "program", "contact", "show_contact") if record[name]}
     frontmatter["source_issue"] = issue["number"]
     target.parent.mkdir(parents=True, exist_ok=True)
     content = "---\n" + yaml.safe_dump(frontmatter, allow_unicode=True, sort_keys=False) + "---\n" + record["body"].strip() + "\n"

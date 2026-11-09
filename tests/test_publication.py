@@ -29,6 +29,7 @@ class PublicationTests(unittest.TestCase):
         from scripts import build
         record = module.decode_issue(fixture()["issue"])
         self.assertEqual(record["institution_type"], "")
+        self.assertEqual(record["show_contact"], "yes")
         with self.assertRaises(ValueError):
             module.validate_record(dict(record, institution_type="985"))
         with self.assertRaises(ValueError):
@@ -47,6 +48,22 @@ class PublicationTests(unittest.TestCase):
             path.write_text("---\n" + build.yaml.safe_dump(meta) + "---\n" + body, encoding="utf-8")
             with self.assertRaises(ValueError):
                 build.parse(path)
+
+    def test_contact_visibility_survives_import_without_removing_issue_data(self):
+        from scripts import build
+        record = module.decode_issue(fixture()["issue"])
+        record.update(contact="private-on-site@example.com", show_contact="no")
+        event = fixture()
+        encoded = base64.urlsafe_b64encode(json.dumps(record).encode()).decode().rstrip("=")
+        event["issue"]["body"] = "<!-- uem-submission-v1:" + encoded + " -->"
+        with tempfile.TemporaryDirectory() as directory:
+            path, _ = module.import_event(event, Path(directory))
+            meta, body = build.parse(path)
+            self.assertEqual(meta["contact"], record["contact"])
+            self.assertEqual(meta["show_contact"], "no")
+            self.assertNotIn(record["contact"], build.render(meta, body, "articles/test.html"))
+            meta["show_contact"] = "yes"
+            self.assertIn(record["contact"], build.render(meta, body, "articles/test.html"))
 
     def test_reviewed_commit_triggers_source_publication(self):
         workflow = (ROOT / '.github/workflows/publish-completed-submission.yml').read_text(encoding='utf-8')

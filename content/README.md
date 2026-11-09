@@ -10,8 +10,10 @@ year: "2026"
 college: 学院
 major: 专业
 destination: 最终去向
-program: 专业、项目或岗位（可选）
-contact: 邮箱或社交账号（可选，公开展示）
+institution_type: "985" # 考研填写 985、211（非985）或 other
+program: 专业、项目或岗位
+contact: 邮箱或社交账号（选填，填写后在 Issue 中公开）
+show_contact: "no" # yes 表示在文章中显示，no 表示隐藏
 excerpt: 一句话摘要（可选）
 tags:
   - 复试
@@ -20,6 +22,8 @@ tags:
 ```
 
 `category` 必须是 `data/schema.json` 中定义的分类之一。不要提交未经当事人许可的个人信息。文章标题自动使用「去向 · 专业/项目/岗位」生成，署名另显示「昵称 · 毕业届次 · 学院 · 专业」，无须单独填写标题；正文从 Markdown 文件本体读取。文章中不接受直接嵌入的 HTML。
+
+新投稿除联系方式外的适用内容字段均须填写，考研须选择录取院校层次；联系方式和展示开关均为选填。`requiredOnSubmit` 仅用于新投稿校验，旧 Issue 和已有 Markdown 继续兼容。旧文章缺少 `show_contact` 时维持原有展示，新投稿默认不在文章中展示联系方式。
 
 ## 演示文章
 

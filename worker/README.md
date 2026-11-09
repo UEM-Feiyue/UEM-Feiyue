@@ -64,3 +64,15 @@ Turnstile Siteverify (including hostname and action), and the GitHub token.
 Any dependency failure rejects the request. No IP is placed into Issues.
 An attacker can still abuse a public endpoint; monitor GitHub and Worker usage,
 rotate credentials when necessary, and close the kill switch if abuse occurs.
+
+## New-submission requirements and contact visibility
+
+`requiredOnSubmit` in `data/schema.json` makes program and the
+postgraduate-only institution type mandatory for new submissions without
+invalidating older reviewed Issues or Markdown. Contact information remains optional. `institution_type` applies only
+to `kaoyan`; it must be empty for other directions.
+
+`show_contact` accepts `yes` or `no` (new submissions default to `no`). It controls
+only the published article: contact information always remains in the public
+Issue and source Markdown. The importer defaults older Issues to `yes` to
+preserve their previous behavior. Deploy the updated Worker before the front end.
