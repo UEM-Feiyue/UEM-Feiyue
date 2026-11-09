@@ -68,20 +68,21 @@ def shared_chrome(source, page, prefix="./", category=None):
     """Reuse the homepage's navigation/header/footer without a separate UI framework."""
     home = (ROOT / "index.html").read_text(encoding="utf-8")
     sidebar = re.search(r'<aside class="sidebar".*?</aside>', home, re.S)[0]
-    links = [f'<a href="{prefix}" data-view="home">首页</a>',
-             f'<a href="{prefix}?view=all" data-category="all">全部经历</a>']
+    links = []
     for item in SCHEMA["categories"]:
         selected = ' aria-current="page"' if category == item["id"] else ''
         links.append(f'<a href="{prefix}?category={quote(item["id"])}" data-category="{html.escape(item["id"], quote=True)}" data-category-label="{html.escape(item["label"], quote=True)}" data-category-description="{html.escape(item["description"], quote=True)}"{selected}>{html.escape(item["label"])}</a>')
-    links.append(f'<a href="{prefix}submit.html" class="nav-contribute"' + (' aria-current="page"' if page == "submit" else '') + '>投稿分享 <span class="link-arrow" aria-hidden="true"></span></a>')
-    links.append(f'<a href="{prefix}community.html" class="nav-community"' + (' aria-current="page"' if page == "community" else '') + '>共建与联系 <span class="link-arrow" aria-hidden="true"></span></a>')
-    sidebar = re.sub(r'(<nav class="nav"[^>]*>).*?(</nav>)', lambda m: m[1] + ''.join(links) + m[2], sidebar, flags=re.S)
+    links.append(f'<a href="{prefix}submit.html" class="nav-contribute"' + (' aria-current="page"' if page == "submit" else '') + '>投稿</a>')
+    links.append(f'<a href="{prefix}community.html" class="nav-community"' + (' aria-current="page"' if page == "community" else '') + '>联系</a>')
     header = re.search(r'<header class="topbar"[^>]*>.*?</header>', home, re.S)[0]
+    toggle = re.search(r'<button class="icon-button menu-button".*?</button>', home, re.S)[0]
+    source = re.sub(r'<button class="icon-button menu-button".*?</button>', '', source, flags=re.S)
+    source = source.replace('<div class="shell">', '<div class="shell">\n' + toggle, 1)
     footer = re.search(r'<footer class="site-footer".*?</footer>', home, re.S)[0]
-    footer_links = f'<a href="{prefix}?view=all">全部经历</a>' + ''.join(
-        f'<a href="{prefix}?category={quote(item["id"])}">{html.escape(item["label"])}</a>' for item in SCHEMA["categories"])
-    footer_links += f'<a href="{prefix}submit.html">投稿分享</a><a href="{prefix}community.html">共建与联系</a>'
-    footer = re.sub(r'(<nav class="footer-links"[^>]*>).*?(</nav>)', lambda m: m[1] + footer_links + m[2], footer, flags=re.S)
+    search_dialog = re.search(r'<dialog class="search-dialog".*?</dialog>', home, re.S)[0]
+    header = re.sub(r'(<nav class="top-links"[^>]*>).*?(</nav>)', lambda m: m[1] + ''.join(links) + m[2], header, flags=re.S)
+    source = re.sub(r'<dialog class="search-dialog".*?</dialog>', '', source, flags=re.S)
+    header += '\n' + search_dialog
     footer = footer.replace('class="footer-copyright" href="./community.html"', f'class="footer-copyright" href="{prefix}community.html"')
     for pattern, fragment in ((r'<aside class="sidebar".*?</aside>', sidebar),
                               (r'<header class="topbar"[^>]*>.*?</header>', header),

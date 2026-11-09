@@ -95,16 +95,16 @@ def main():
                         assert background["bannerImage"].count("linear-gradient") == 3
                         assert layout["surface"] in background["bannerImage"]
                     else:
-                        assert page.locator(".campus-banner").evaluate("el => Math.abs(el.getBoundingClientRect().top) < 1")
+                        assert page.locator(".campus-banner").evaluate("el => Math.abs(el.getBoundingClientRect().top - 72) < 1")
                     assert page.locator("#theme-toggle").count() == 1
                     if width <= 900:
                         assert page.locator(".topbar").is_visible()
                     else:
-                        assert page.locator(".topbar").is_hidden()
+                        assert page.locator(".topbar").is_visible()
                         assert page.locator("#theme-toggle").is_visible()
                     assert "anguo-garden.jpg" in background["bannerImage"]
                     assert all(value.strip() == "cover" for value in background["bannerSize"].split(","))
-                    assert 220 <= background["bannerHeight"] <= 440
+                    assert 200 <= background["bannerHeight"] <= 340
                     assert abs(background["bannerWidth"] - background["containerWidth"]) <= 1
                     assert background["contentTop"] >= background["bannerBottom"] - 1
                     assert background["titleTop"] < background["bannerBottom"]
@@ -113,7 +113,7 @@ def main():
                     assert background["contentBackground"] != "rgba(0, 0, 0, 0)"
                     # Logo on the current homepage must scroll even when the URL
                     # remains unchanged. The previous same-URL guard swallowed it.
-                    brand = ".mobile-brand" if width <= 900 else ".sidebar .brand"
+                    brand = ".mobile-brand"
                     assert page.locator(brand).is_visible()
                     assert page.locator(brand + " img").evaluate(
                         "el => el.naturalWidth === 1226 && el.naturalHeight === 285 && getComputedStyle(el).maskImage === 'none'"
@@ -148,32 +148,44 @@ def main():
                             assert abs(before_scroll[dimension] - after_scroll[dimension]) <= .5, (
                                 width, dimension, before_scroll, after_scroll
                             )
-                        divider_positions = page.evaluate("""() => [
-                            document.querySelector('.sidebar-bottom').getBoundingClientRect().top,
-                            document.querySelector('.footer-bottom').getBoundingClientRect().top
-                        ]""")
-                        assert abs(divider_positions[0] - divider_positions[1]) <= 2, (width, divider_positions)
+                        assert page.locator('#menu-toggle').evaluate('el => { const r = el.getBoundingClientRect(); return Math.abs(r.left - document.querySelector("#sidebar").getBoundingClientRect().right + 14) < 2 && r.bottom > innerHeight - 40; }')
+                        assert page.locator('.search-open').evaluate("el => el.getBoundingClientRect().right <= document.querySelector('#category-nav').getBoundingClientRect().left")
+                        assert page.locator('.sidebar-categories details').count() == 4
+                        page.locator('[data-directory-category="career"] summary').click()
+                        page.locator('[data-directory-category="career"] li a').first.wait_for(state='visible')
+                        assert '某智能制造企业' in page.locator('[data-directory-category="career"] li a').first.inner_text()
+                        page.locator('[data-directory-category="kaoyan"] summary').click()
+                        assert page.locator('.sidebar-categories details[open]').count() == 1
+                        assert not page.locator('[data-directory-category="career"]').evaluate('el => el.open')
+                        page.locator('[data-directory-category="career"] summary').click()
+                        assert page.locator('.sidebar-categories details[open]').count() == 1
+                        assert page.locator('.topbar #theme-toggle').is_visible()
+                        assert page.locator('#theme-toggle').evaluate("el => el.getBoundingClientRect().left >= document.querySelector('.search-open').getBoundingClientRect().right")
                     page.locator(brand).click()
                     page.wait_for_function("scrollY <= 2")
                     assert page.url.rstrip("/").endswith(PREFIX)
-                    assert page.locator("#category-nav [data-category]").count() == 5
+                    assert page.locator("#category-nav [data-category]").count() == 4
                     assert page.locator(".site-footer").count() == 1
+                    assert page.locator('.top-links .link-arrow').count() == 0
+                    assert page.locator('.footer-bottom > .footer-brand').count() == 1
                     assert page.locator(".site-footer").evaluate(
                         "el => getComputedStyle(el).backgroundImage.includes('linear-gradient')"
                     )
-                    # Footer columns align to the outside edges of the content area.
-                    footer = page.evaluate("""() => {
-                        const inner = document.querySelector('.footer-inner').getBoundingClientRect();
-                        const brand = document.querySelector('.footer-grid > div:first-child').getBoundingClientRect();
-                        const links = document.querySelector('.footer-grid > div:last-child').getBoundingClientRect();
-                        return {left: inner.left, right: inner.right, brand: brand.left,
-                                navLeft: links.left, navRight: links.right};
-                    }""")
-                    assert abs(footer["brand"] - footer["left"]) <= 2
-                    if width > 720:
-                        assert abs(footer["navRight"] - footer["right"]) <= 2
-                    else:
-                        assert abs(footer["navLeft"] - footer["left"]) <= 2
+                    if width > 900:
+                        assert page.locator('.top-links a').count() == 6
+                        page.locator('#menu-toggle').click()
+                        assert page.locator('#sidebar').evaluate('el => el.inert')
+                        assert page.locator('.page').evaluate('el => el.getBoundingClientRect().left === 0')
+                        page.reload(wait_until='networkidle')
+                        assert page.locator('#menu-toggle').get_attribute('aria-expanded') == 'false'
+                        page.locator('#menu-toggle').click()
+                        assert not page.locator('#sidebar').evaluate('el => el.inert')
+                        assert page.locator('#sidebar .top-links').count() == 0
+                        assert [text.strip() for text in page.locator('.top-links a').all_text_contents()[-2:]] == ['投稿', '联系']
+                        page.locator('.search-open').click()
+                        assert page.locator('#search-dialog').evaluate('el => el.open')
+                        page.keyboard.press('Escape')
+                        page.locator('.mobile-brand').click()
 
                     if width <= 900:
                         assert page.locator("#sidebar").evaluate("el => el.inert")
@@ -196,6 +208,8 @@ def main():
                             assert page.locator("#theme-toggle").get_attribute("data-mode") == current
                             assert (page.evaluate("document.documentElement.dataset.theme") or "system") == current
                         assert page.evaluate("document.documentElement.dataset.theme") == original_theme
+                        assert page.locator('#menu-toggle').get_attribute('aria-expanded') == 'false'
+                        page.locator('#menu-toggle').click()
                         page.keyboard.press("Escape")
                         assert page.locator("#menu-toggle").get_attribute("aria-expanded") == "false"
                         assert not page.locator(".shell").evaluate("el => el.classList.contains('menu-open')")
@@ -226,13 +240,15 @@ def main():
                         assert page.evaluate("scrollY > 0")
                         if width <= 900:
                             page.locator("#menu-toggle").click()
-                        page.locator("#category-nav [data-category='kaoyan']").click()
+                        if width <= 900:
+                            page.locator('[data-directory-category="kaoyan"] summary').click()
+                            page.locator('[data-directory-category="kaoyan"] .sidebar-category-all').click()
+                        else:
+                            page.locator("#category-nav [data-category='kaoyan']").click()
                         page.wait_for_url("**/?category=kaoyan")
                         page.wait_for_function("scrollY === 0")
                         assert page.locator(".article-item:visible").count() == 1
-                        if width <= 900:
-                            page.locator("#menu-toggle").click()
-                        page.locator("#category-nav [data-category='all']").click()
+                        page.evaluate("document.querySelector('#home-intro a').click()")
                         page.wait_for_url("**/?view=all")
                     assert page.locator("#year-filter").evaluate("el => getComputedStyle(el).appearance") == "none"
                     assert page.locator(".year-select svg").is_visible()
@@ -257,7 +273,7 @@ def main():
                     assert page.locator("#year-filter").input_value() == "all"
                     visible_before_search = page.locator(".article-item:visible").count()
                     assert page.locator('.search-open').evaluate("""el => el.parentElement === document.querySelector(
-                        innerWidth <= 900 ? '.topbar' : '.archive-intro')""")
+                        '.topbar')""")
                     page.locator(".search-open").click()
                     assert page.locator("#search-dialog").evaluate("el => el.open")
                     assert page.locator("#search").evaluate("el => document.activeElement === el")
@@ -308,7 +324,7 @@ def main():
                             return Math.abs(content.left - box.left - parseFloat(style.paddingLeft)) < 2 &&
                                 Math.abs(content.right - box.right + parseFloat(style.paddingRight)) < 2;
                         }""")
-                    assert page.locator(".demo-badge").is_visible() == articles[0]["demo"]
+                    assert page.locator(".article-page > .demo-badge").is_visible() == articles[0]["demo"]
                     assert page.locator(".article-toc").count() <= 1
                     if page.locator(".article-toc").count():
                         assert page.locator(".article-toc").evaluate("el => el.tagName") == "DETAILS"
@@ -317,6 +333,12 @@ def main():
                         assert page.locator(".article-toc").get_attribute("open") is not None
                         assert page.locator(".article-toc a").first.is_visible()
 
+                    assert page.locator('.campus-banner').evaluate('el => { const height = el.getBoundingClientRect().height; return height >= 144 && height <= 224; }')
+                    page.locator('.search-open').click()
+                    page.locator('#search').fill('推荐信')
+                    page.locator('#search-results li a').first.wait_for(state='visible')
+                    assert '香港某高校' in page.locator('#search-results li a').first.inner_text()
+                    page.keyboard.press('Escape')
                     assert page.locator("#category-nav [aria-current='page']").count() == 1
                     assert page.locator(".site-footer").count() == 1
                     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 2")
@@ -422,7 +444,7 @@ def main():
             page.goto(base + "/?view=all", wait_until="networkidle")
             page.evaluate("window.__sameDocument = true")
             page.locator('#category-nav [data-category="career"]').click()
-            page.wait_for_function("location.search === '?category=career' && !document.querySelector('#archive-section').hidden")
+            page.wait_for_function("location.search === '?category=career' && document.querySelector('#category-nav [aria-current]')?.dataset.category === 'career'")
             assert page.evaluate("window.__sameDocument")
             page.keyboard.press("Control+k")
             assert page.locator('#search-dialog').evaluate("el => el.open")
@@ -431,7 +453,7 @@ def main():
             page.keyboard.press("Escape")
             assert not page.locator('#search-dialog').evaluate("el => el.open")
             page.wait_for_function("document.querySelector('#search').value === ''")
-            page.locator('#category-nav [data-category="all"]').click()
+            page.evaluate("document.querySelector('#home-intro a').click()")
             page.wait_for_function("location.search === '?view=all'")
             page.go_back()
             assert page.url.endswith('?category=career')
@@ -453,8 +475,8 @@ def main():
             page = context.new_page()
             for route in ("/", "/" + articles[0]["url"]):
                 page.goto(base + PREFIX + route)
-                assert page.locator(".footer-links a").count() == 7
-                assert page.locator("#category-nav [data-category]").count() == 5
+                assert page.locator(".top-links a").count() == 6
+                assert page.locator("#category-nav [data-category]").count() == 4
                 assert page.locator("h1").count() >= 1
                 if route == "/":
                     assert page.locator(".article-item:visible").count() == len(articles)
@@ -554,7 +576,7 @@ def main():
             page.set_viewport_size({"width": 390, "height": 844})
             assert page.locator('.topbar .search-open').evaluate('el => el === window.__searchNode')
             page.set_viewport_size({"width": 901, "height": 844})
-            assert page.locator('.archive-intro .search-open').evaluate('el => el === window.__searchNode')
+            assert page.locator('.topbar .search-open').evaluate('el => el === window.__searchNode')
             context.close()
             # Mocked public mode: confirm the complete browser payload/feedback
             # without contacting Cloudflare or opening an actual GitHub Issue.

@@ -149,20 +149,26 @@
   const toggle = document.querySelector('#menu-toggle');
   const shell = document.querySelector('.shell');
   const mobile = matchMedia('(max-width: 900px)');
-  const isOpen = () => mobile.matches && shell.classList.contains('menu-open');
+  const isOpen = () => mobile.matches ? shell.classList.contains('menu-open') : root.dataset.sidebar !== 'collapsed';
   const setMenu = (open, restoreFocus = false) => {
-    open = Boolean(open && mobile.matches);
-    shell.classList.toggle('menu-open', open);
-    sidebar.inert = mobile.matches && !open;
+    open = Boolean(open);
+    if (!mobile.matches) {
+      root.dataset.sidebar = open ? 'expanded' : 'collapsed';
+      try { localStorage.setItem('uem-sidebar', root.dataset.sidebar); } catch {}
+    }
+    shell.classList.toggle('menu-open', mobile.matches && open);
+    sidebar.inert = !open;
     toggle.setAttribute('aria-expanded', String(open));
-    toggle.setAttribute('aria-label', open ? '关闭导航' : '打开导航');
-    if (restoreFocus && mobile.matches) toggle.focus();
+    const toggleLabel = mobile.matches ? (open ? '关闭导航' : '打开导航') : (open ? '收起侧栏' : '展开侧栏');
+    toggle.setAttribute('aria-label', toggleLabel);
+    toggle.title = toggleLabel;
+    if (restoreFocus) toggle.focus();
   };
   // Navigation has its own lifecycle: dismiss the outgoing menu synchronously,
   // without replaying its closing animation over the old or restored page.
   const resetMenu = () => {
     shell.classList.add('nav-reset');
-    setMenu(false);
+    setMenu(mobile.matches ? false : isOpen());
   };
   const finishReset = () => requestAnimationFrame(() => shell.classList.remove('nav-reset'));
   toggle.addEventListener('click', () => {
@@ -170,7 +176,7 @@
     setMenu(!isOpen());
   });
   document.addEventListener('click', event => {
-    if (isOpen() && !sidebar.contains(event.target) && !toggle.contains(event.target)) setMenu(false);
+    if (mobile.matches && isOpen() && !sidebar.contains(event.target) && !toggle.contains(event.target)) setMenu(false);
   });
   sidebar.addEventListener('click', event => {
     const link = event.target.closest('a[href]');
@@ -187,16 +193,248 @@
     if (sameDocument) finishReset();
   });
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && isOpen()) setMenu(false, true);
+    if (event.key === 'Escape' && mobile.matches && isOpen()) setMenu(false, true);
   });
-  mobile.addEventListener('change', () => setMenu(false));
+  mobile.addEventListener('change', () => setMenu(!mobile.matches && root.dataset.sidebar !== 'collapsed'));
   window.addEventListener('pagehide', resetMenu);
   window.addEventListener('pageshow', () => {
     resetMenu();
     finishReset();
   });
-  setMenu(false);
+  setMenu(!mobile.matches && root.dataset.sidebar !== 'collapsed');
 
+  const navigation = document.querySelector('#category-nav');
+  const navigationHome = document.querySelector('.topbar');
+  const placeNavigation = () => {
+    if (mobile.matches) {
+      document.querySelector('.mobile-navigation').append(navigation);
+      navigationHome.insertBefore(toggle, themeButton);
+    } else {
+      shell.append(toggle);
+      navigationHome.insertBefore(navigation, themeButton);
+    }
+  };
+  mobile.addEventListener('change', placeNavigation);
+  placeNavigation();
+
+  const cards = [...document.querySelectorAll('.article-item')];
+  const siteRoot = new URL('./', document.querySelector('.mobile-brand').href);
+  const categoryDirectory = document.querySelector('.sidebar-categories');
+  const directoryLabel = document.createElement('p');
+  directoryLabel.className = 'sidebar-directory-label';
+  directoryLabel.textContent = '经历目录';
+  categoryDirectory.append(directoryLabel);
+  let directoryData;
+  const loadDirectory = () => directoryData ??= fetch(new URL('data/articles.json', siteRoot))
+    .then(response => { if (!response.ok) throw new Error('文章目录暂不可用'); return response.json(); })
+    .catch(error => { directoryData = undefined; throw error; });
+  for (const categoryLink of navigation.querySelectorAll('[data-category]')) {
+    const group = document.createElement('details');
+    group.name = 'experience-categories';
+    group.dataset.directoryCategory = categoryLink.dataset.category;
+    const summary = document.createElement('summary');
+    summary.textContent = categoryLink.dataset.categoryLabel;
+    const allLink = document.createElement('a');
+    allLink.className = 'sidebar-category-all';
+    allLink.href = categoryLink.href;
+    allLink.textContent = '查看全部' + categoryLink.dataset.categoryLabel + '经历';
+    const list = document.createElement('ul');
+    group.append(summary, list, allLink);
+    let loaded = false;
+    let loading = false;
+    group.addEventListener('toggle', async () => {
+      if (!group.open || loaded || loading) return;
+      loading = true;
+      list.textContent = '正在加载…';
+      try {
+        const entries = (await loadDirectory()).filter(entry => entry.category === group.dataset.directoryCategory);
+        list.replaceChildren();
+        for (const entry of entries) {
+          const item = document.createElement('li');
+          const link = document.createElement('a');
+          link.href = new URL(entry.url, siteRoot).href;
+          const title = document.createElement('span');
+          title.className = 'sidebar-story-title';
+          title.textContent = entry.title;
+          link.title = entry.title + ' · ' + entry.author + ' · ' + entry.year;
+          const meta = document.createElement('span');
+          meta.className = 'sidebar-story-meta';
+          const byline = document.createElement('span');
+          byline.className = 'sidebar-story-byline';
+          byline.textContent = entry.author + ' · ' + entry.year;
+          meta.append(byline);
+          link.append(title, meta);
+          if (entry.demo) {
+            const badge = document.createElement('span');
+            badge.className = 'demo-badge';
+            badge.textContent = '演示';
+            meta.append(badge);
+          }
+          if (new URL(link.href).pathname === location.pathname) link.setAttribute('aria-current', 'page');
+          item.append(link);
+          list.append(item);
+        }
+        if (!entries.length) list.textContent = '还没有发布的经历';
+        loaded = true;
+      } catch { list.textContent = '目录加载失败，收起后可重试。'; }
+      finally { loading = false; }
+    });
+    categoryDirectory.append(group);
+    if (categoryLink.hasAttribute('aria-current')) group.open = true;
+  }
+  const sitePath = siteRoot.pathname;
+  const indexedPath = path => path.startsWith(sitePath) ? '/' + path.slice(sitePath.length) : path;
+  const cardByPath = new Map(cards.map(card => [indexedPath(card.querySelector('h3 a').pathname), card]));
+  const highlight = (element, value, query) => {
+    const terms = [...new Set(query.split(/\s+/))].sort((a, b) => b.length - a.length);
+    const pattern = new RegExp(terms.map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'giu');
+    let end = 0;
+    for (const match of value.matchAll(pattern)) {
+      element.append(value.slice(end, match.index));
+      const mark = document.createElement('mark');
+      mark.textContent = match[0];
+      element.append(mark);
+      end = match.index + match[0].length;
+    }
+    element.append(value.slice(end));
+  };
+  const dialog = document.querySelector('#search-dialog');
+  const search = document.querySelector('#search');
+  const searchOpen = document.querySelector('.search-open');
+  const results = document.querySelector('#search-results');
+  const scrollHint = document.createElement('div');
+  scrollHint.className = 'scroll-hint';
+  scrollHint.setAttribute('aria-hidden', 'true');
+  dialog.append(scrollHint);
+  const syncScrollHint = () => {
+    scrollHint.classList.toggle('is-visible', results.scrollHeight - results.clientHeight - results.scrollTop > 2);
+  };
+  results.addEventListener('scroll', syncScrollHint, {passive:true});
+  new ResizeObserver(syncScrollHint).observe(results);
+  let engine;
+  let requestId = 0;
+  const loadSearch = () => engine ??= import(new URL('pagefind/pagefind.js', siteRoot).href).then(async pagefind => {
+    await pagefind.options({ excerptLength: 18, excerptEllipsis: '…' });
+    return pagefind;
+  });
+  const positionSearch = () => {
+    const top = searchOpen.getBoundingClientRect().bottom + 12;
+    dialog.style.setProperty('--search-top', Math.round(top) + 'px');
+    if (mobile.matches) {
+      const viewport = window.visualViewport;
+      const bottom = (viewport?.offsetTop || 0) + (viewport?.height || innerHeight);
+      dialog.style.setProperty('--search-available', Math.round(Math.max(54, bottom - top - 12)) + 'px');
+      return;
+    }
+    dialog.style.removeProperty('--search-available');
+  };
+  const openSearch = () => {
+
+    positionSearch();
+    dialog.showModal();
+    search.focus({preventScroll:true});
+    requestAnimationFrame(positionSearch);
+    syncScrollHint();
+  };
+  searchOpen.addEventListener('click', openSearch);
+  window.addEventListener('resize', () => { if (dialog.open) positionSearch(); });
+  window.visualViewport?.addEventListener('resize', () => { if (dialog.open) positionSearch(); });
+  window.visualViewport?.addEventListener('scroll', () => { if (dialog.open) positionSearch(); });
+  dialog.addEventListener('close', () => {
+    ++requestId;
+    search.value = '';
+    results.replaceChildren();
+    syncScrollHint();
+    searchOpen.focus({preventScroll:true});
+  });
+  dialog.querySelector('.search-close').addEventListener('click', () => dialog.close());
+  dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+  document.addEventListener('keydown', event => {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      if (dialog.open) dialog.close(); else openSearch();
+    } else if (event.key === 'Escape' && dialog.open) {
+      event.preventDefault();
+      dialog.close();
+    }
+  });
+  search.addEventListener('input', async () => {
+    const query = search.value.trim();
+    const id = ++requestId;
+    results.replaceChildren();
+    results.scrollTop = 0;
+    syncScrollHint();
+    if (!query) return;
+    results.textContent = '正在搜索…';
+    try {
+      const pagefind = await loadSearch();
+      const found = await pagefind.debouncedSearch(query);
+      if (id !== requestId) return;
+      const pages = await Promise.all((found?.results || []).map(item => item.data()));
+      if (id !== requestId) return;
+      const normalize = value => value.normalize('NFKC').toLocaleLowerCase();
+      const titleQuery = normalize(query);
+      const exactCjkPhrase = /^[\p{Script=Han}]{2,}$/u.test(query);
+      const bodyMatches = new Map(pages.map((page, rank) => [indexedPath(new URL(page.url, location.href).pathname), {page, rank}]));
+      let matches = [...cardByPath].flatMap(([path, card]) => {
+        if (card.hidden) return [];
+        const title = card.querySelector('h3 a').textContent;
+        const byline = card.querySelector('.article-meta').textContent;
+        const titleMatch = normalize(title).includes(titleQuery);
+        const bylineMatch = normalize(byline).includes(titleQuery);
+        const body = bodyMatches.get(path);
+        if (!titleMatch && !bylineMatch && !body) return [];
+        if (exactCjkPhrase && !title.includes(query) && !byline.includes(query) && !(body?.page.content || '').includes(query)) return [];
+        return [{card, title, byline, titleMatch, bylineMatch, body}];
+      });
+      if (!document.querySelector('#archive-section')) {
+        matches = pages.map((page, rank) => ({
+          title: page.meta.title || '经历分享', byline: page.meta.byline || '',
+          href: new URL(indexedPath(new URL(page.url, siteRoot).pathname).replace(/^\//, ''), siteRoot).href, body: {page, rank}
+        }));
+      }
+      matches.sort((a, b) => Number(b.titleMatch) - Number(a.titleMatch) ||
+        Number(b.bylineMatch) - Number(a.bylineMatch) ||
+        (a.body?.rank ?? pages.length) - (b.body?.rank ?? pages.length));
+      const list = document.createElement('ul');
+      for (const match of matches) {
+        const row = document.createElement('li');
+        const link = document.createElement('a');
+        link.href = match.href || match.card.querySelector('h3 a').href;
+        const title = document.createElement('span');
+        title.className = 'search-title';
+        highlight(title, match.title, query);
+        link.append(title);
+        const page = match.body?.page;
+        const position = exactCjkPhrase ? (page?.content || '').indexOf(query) : -1;
+        if (match.bylineMatch || position >= 0 || page?.excerpt?.includes('<mark>')) {
+          const note = document.createElement('span');
+          note.className = 'search-match';
+          if (match.bylineMatch) {
+            highlight(note, match.byline, query);
+          } else if (position >= 0) {
+            highlight(note, page.content.slice(Math.max(0, position - 30), position + query.length + 50), query);
+          } else note.innerHTML = page.excerpt;
+          link.append(note);
+        }
+        row.append(link);
+        list.append(row);
+      }
+      results.replaceChildren();
+      if (list.childElementCount) {
+        const summary = document.createElement('p');
+        summary.className = 'search-summary';
+        summary.textContent = `找到 ${list.childElementCount} 篇经历`;
+        results.append(summary, list);
+      }
+      else results.textContent = '没有找到匹配内容';
+      syncScrollHint();
+    } catch (error) {
+      if (id !== requestId) return;
+      results.textContent = '全文搜索暂不可用，请刷新页面后重试。';
+      console.error('Pagefind search failed', error);
+    }
+  });
   const archive = document.querySelector('#archive-section');
   if (!archive) return;
   const nav = document.querySelector('#category-nav');
@@ -280,23 +518,6 @@
     updateMenu();
   }
 
-  const cards = [...archive.querySelectorAll('.article-item')];
-  const siteRoot = new URL('./', location.href).pathname;
-  const indexedPath = path => path.startsWith(siteRoot) ? '/' + path.slice(siteRoot.length) : path;
-  const cardByPath = new Map(cards.map(card => [indexedPath(card.querySelector('h3 a').pathname), card]));
-  const highlight = (element, value, query) => {
-    const terms = [...new Set(query.split(/\s+/))].sort((a, b) => b.length - a.length);
-    const pattern = new RegExp(terms.map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'giu');
-    let end = 0;
-    for (const match of value.matchAll(pattern)) {
-      element.append(value.slice(end, match.index));
-      const mark = document.createElement('mark');
-      mark.textContent = match[0];
-      element.append(mark);
-      end = match.index + match[0].length;
-    }
-    element.append(value.slice(end));
-  };
   const empty = document.querySelector('#empty-state');
   const count = document.querySelector('#results-count');
   let activeCategory = 'all';
@@ -315,144 +536,6 @@
     count.textContent = visibleCount + ' 篇经历' + (hasDemo ? ' · 含演示内容' : '');
     empty.hidden = visibleCount > 0;
   };
-  const dialog = document.querySelector('#search-dialog');
-  const search = document.querySelector('#search');
-  const searchOpen = document.querySelector('.search-open');
-  const searchDesktopParent = searchOpen.parentElement;
-  const syncSearchPlacement = () => {
-    if (mobile.matches) toggle.before(searchOpen);
-    else searchDesktopParent.append(searchOpen);
-  };
-  syncSearchPlacement();
-  mobile.addEventListener('change', syncSearchPlacement);
-  const results = document.querySelector('#search-results');
-  const scrollHint = document.createElement('div');
-  scrollHint.className = 'scroll-hint';
-  scrollHint.setAttribute('aria-hidden', 'true');
-  dialog.append(scrollHint);
-  const syncScrollHint = () => {
-    scrollHint.classList.toggle('is-visible', results.scrollHeight - results.clientHeight - results.scrollTop > 2);
-  };
-  results.addEventListener('scroll', syncScrollHint, {passive:true});
-  new ResizeObserver(syncScrollHint).observe(results);
-  let engine;
-  let requestId = 0;
-  const loadSearch = () => engine ??= import('/pagefind/pagefind.js').then(async pagefind => {
-    await pagefind.options({ excerptLength: 18, excerptEllipsis: '…' });
-    return pagefind;
-  });
-  const positionSearch = () => {
-    const top = searchOpen.getBoundingClientRect().bottom + 12;
-    dialog.style.setProperty('--search-top', Math.round(top) + 'px');
-    if (mobile.matches) {
-      const viewport = window.visualViewport;
-      const bottom = (viewport?.offsetTop || 0) + (viewport?.height || innerHeight);
-      dialog.style.setProperty('--search-available', Math.round(Math.max(54, bottom - top - 12)) + 'px');
-      return;
-    }
-    dialog.style.removeProperty('--search-available');
-  };
-  const openSearch = () => {
-    if (archive.hidden) return;
-    positionSearch();
-    dialog.showModal();
-    search.focus({preventScroll:true});
-    requestAnimationFrame(positionSearch);
-    syncScrollHint();
-  };
-  searchOpen.addEventListener('click', openSearch);
-  window.addEventListener('resize', () => { if (dialog.open) positionSearch(); });
-  window.visualViewport?.addEventListener('resize', () => { if (dialog.open) positionSearch(); });
-  window.visualViewport?.addEventListener('scroll', () => { if (dialog.open) positionSearch(); });
-  dialog.addEventListener('close', () => {
-    ++requestId;
-    search.value = '';
-    results.replaceChildren();
-    syncScrollHint();
-    if (!archive.hidden) searchOpen.focus({preventScroll:true});
-  });
-  dialog.querySelector('.search-close').addEventListener('click', () => dialog.close());
-  dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
-  document.addEventListener('keydown', event => {
-    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-      event.preventDefault();
-      if (dialog.open) dialog.close(); else openSearch();
-    } else if (event.key === 'Escape' && dialog.open) {
-      event.preventDefault();
-      dialog.close();
-    }
-  });
-  search.addEventListener('input', async () => {
-    const query = search.value.trim();
-    const id = ++requestId;
-    results.replaceChildren();
-    results.scrollTop = 0;
-    syncScrollHint();
-    if (!query) return;
-    results.textContent = '正在搜索…';
-    try {
-      const pagefind = await loadSearch();
-      const found = await pagefind.debouncedSearch(query);
-      if (id !== requestId) return;
-      const pages = await Promise.all((found?.results || []).map(item => item.data()));
-      if (id !== requestId) return;
-      const normalize = value => value.normalize('NFKC').toLocaleLowerCase();
-      const titleQuery = normalize(query);
-      const exactCjkPhrase = /^[\p{Script=Han}]{2,}$/u.test(query);
-      const bodyMatches = new Map(pages.map((page, rank) => [indexedPath(new URL(page.url, location.href).pathname), {page, rank}]));
-      const matches = [...cardByPath].flatMap(([path, card]) => {
-        if (card.hidden) return [];
-        const title = card.querySelector('h3 a').textContent;
-        const byline = card.querySelector('.article-meta').textContent;
-        const titleMatch = normalize(title).includes(titleQuery);
-        const bylineMatch = normalize(byline).includes(titleQuery);
-        const body = bodyMatches.get(path);
-        if (!titleMatch && !bylineMatch && !body) return [];
-        if (exactCjkPhrase && !title.includes(query) && !byline.includes(query) && !(body?.page.content || '').includes(query)) return [];
-        return [{card, title, byline, titleMatch, bylineMatch, body}];
-      });
-      matches.sort((a, b) => Number(b.titleMatch) - Number(a.titleMatch) ||
-        Number(b.bylineMatch) - Number(a.bylineMatch) ||
-        (a.body?.rank ?? pages.length) - (b.body?.rank ?? pages.length));
-      const list = document.createElement('ul');
-      for (const match of matches) {
-        const row = document.createElement('li');
-        const link = document.createElement('a');
-        link.href = match.card.querySelector('h3 a').href;
-        const title = document.createElement('span');
-        title.className = 'search-title';
-        highlight(title, match.title, query);
-        link.append(title);
-        const page = match.body?.page;
-        const position = exactCjkPhrase ? (page?.content || '').indexOf(query) : -1;
-        if (match.bylineMatch || position >= 0 || page?.excerpt?.includes('<mark>')) {
-          const note = document.createElement('span');
-          note.className = 'search-match';
-          if (match.bylineMatch) {
-            highlight(note, match.byline, query);
-          } else if (position >= 0) {
-            highlight(note, page.content.slice(Math.max(0, position - 30), position + query.length + 50), query);
-          } else note.innerHTML = page.excerpt;
-          link.append(note);
-        }
-        row.append(link);
-        list.append(row);
-      }
-      results.replaceChildren();
-      if (list.childElementCount) {
-        const summary = document.createElement('p');
-        summary.className = 'search-summary';
-        summary.textContent = `找到 ${list.childElementCount} 篇经历`;
-        results.append(summary, list);
-      }
-      else results.textContent = '没有找到匹配内容';
-      syncScrollHint();
-    } catch (error) {
-      if (id !== requestId) return;
-      results.textContent = '全文搜索暂不可用，请刷新页面后重试。';
-      console.error('Pagefind search failed', error);
-    }
-  });
   const renderView = () => {
     if (dialog.open) dialog.close();
     const params = new URLSearchParams(location.search);
@@ -463,17 +546,23 @@
     document.querySelector('#home-intro').hidden = !isHome;
     document.querySelector('#archive-intro').hidden = isHome;
     archive.hidden = isHome;
-    searchOpen.hidden = isHome;
+
     const current = [...nav.querySelectorAll('[data-category]')].find(link => link.dataset.category === selected && selected !== 'all');
     activeCategory = current?.dataset.category || 'all';
     nav.querySelectorAll('[aria-current]').forEach(link => link.removeAttribute('aria-current'));
-    const active = isHome ? nav.querySelector('a:not([data-category])') : current || nav.querySelector('[data-category="all"]');
+    const active = isHome ? null : current;
+    if (current) {
+      const group = categoryDirectory.querySelector(`[data-directory-category="${CSS.escape(current.dataset.category)}"]`);
+      if (group) group.open = true;
+    }
     active?.setAttribute('aria-current', 'page');
+
     document.querySelector('#stories-heading').textContent = current ? current.dataset.categoryLabel + '经历' : '全部经历';
     document.querySelector('#category-intro').textContent = current ? current.dataset.categoryDescription + '，阅读同学的经验分享。' : '按方向浏览同学分享的升学与职业经验。';
     year.value = history.state?.year || 'all';
     year.dispatchEvent(new Event('yearsync'));
     renderFilters();
+    if (params.get('search') === '1') searchOpen.click();
   };
   year.addEventListener('change', () => {
     history.replaceState({...history.state, year: year.value}, '');
@@ -490,7 +579,7 @@
       // Like the personal homepage: clicking the brand on the current home
       // document returns to the top instead of silently swallowing the click.
       if (link.matches('.brand, .mobile-brand')) {
-        setMenu(false);
+        setMenu(mobile.matches ? false : isOpen());
         window.scrollTo({
           top: 0,
           behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'
