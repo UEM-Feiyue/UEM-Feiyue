@@ -5,9 +5,11 @@ year: '2026'
 college: 应急通信与控制工程学院
 major: 自动化
 destination: 北京理工大学
+institution_id: bit
 program: 控制科学与工程
 contact: '123456'
 source_issue: 9
+demo: true
 ---
 # 【系统测试】考研经历投稿
 

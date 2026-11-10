@@ -29,9 +29,13 @@ To stop accepting submissions, change `SUBMISSIONS_DISABLED=true`.
 
 ## Contract and privacy
 
-A JSON request has `version:1`, `category`, the fields from
-`data/schema.json` (`author`, `year`, `college`, `major`, `destination`, `program`,
-`body`, `contact`) and a `turnstileToken`. Validation uses the shared
+A new JSON request has `version:2`, `category`, the fields from
+`data/schema.json` and a `turnstileToken`. The four postgraduate-only fields
+are `institution_id` (optional), `admission_year`, `degree_type`, and
+`admission_method`; `program` is required in every category. The optional ID
+must match the destination in `data/institutions.json`; an unlisted institution
+uses an empty ID and remains eligible for review. Version 1 signed Issues
+remain importable. Validation uses the shared
 schema, with a hard 64 KiB HTTP payload cap. The body and contact fields
 also have explicit shared-schema length caps. No database or attachments.
 

@@ -21,7 +21,7 @@ PEM = KEY.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.
 def fixture():
     record = {"version": 1, "category": "career", "author": "张同学", "year": "2026", "college": "某学院", "major": "某专业",
               "destination": "某企业", "program": "产品经理", "body": "## 我的经历\n\n具体经历。",
-              "contact": ""}
+              "contact": "", "institution_type": ""}
     payload = base64.urlsafe_b64encode(json.dumps(record, ensure_ascii=False).encode()).decode().rstrip("=")
     signature = KEY.sign(module.SIGNING_CONTEXT + payload.encode(), padding.PKCS1v15(), hashes.SHA256())
     signed = base64.urlsafe_b64encode(signature).decode().rstrip("=")
@@ -33,6 +33,32 @@ def fixture():
 
 
 class PublicationTests(unittest.TestCase):
+    def test_versioned_admission_and_signed_publication(self):
+        from scripts import build
+        event = fixture()
+        record = module.decode_issue(event["issue"], PEM)
+        self.assertEqual(record["version"], 1)
+        legacy_without_tier = dict(record)
+        legacy_without_tier.pop("institution_type")
+        self.assertEqual(module.validate_record(legacy_without_tier)["version"], 1)
+        record.pop("institution_type")
+        record.update(version=2, category="kaoyan", destination="北京理工大学", institution_id="bit",
+                      admission_year="2026", degree_type="academic", admission_method="exam")
+        self.assertEqual(module.validate_record(record)["institution_id"], "bit")
+        for edit in ({"program": ""}, {"admission_year": ""}, {"institution_id": "missing"}):
+            with self.subTest(edit=edit), self.assertRaises(ValueError):
+                module.validate_record(dict(record, **edit))
+        encoded = base64.urlsafe_b64encode(json.dumps(record).encode()).decode().rstrip("=")
+        signature = KEY.sign(module.SIGNING_CONTEXT + encoded.encode(), padding.PKCS1v15(), hashes.SHA256())
+        signed = base64.urlsafe_b64encode(signature).decode().rstrip("=")
+        event["issue"]["body"] = "<!-- uem-submission-v2:" + encoded + ":" + signed + " -->"
+        event["issue"]["title"] = "[飞跃手册投稿] [考研] 张同学 — 北京理工大学 · 产品经理"
+        with tempfile.TemporaryDirectory() as directory:
+            path, _ = module.import_event(event, Path(directory), PEM)
+            meta, body = build.parse(path)
+            self.assertEqual(meta["institution_id"], "bit")
+            self.assertIn("双一流 · 自划线", build.render(meta, body, "articles/test.html"))
+
     def test_reviewed_commit_triggers_source_publication(self):
         workflow = (ROOT / '.github/workflows/publish-completed-submission.yml').read_text(encoding='utf-8')
         deploy = (ROOT / '.github/workflows/deploy.yml').read_text(encoding='utf-8')
