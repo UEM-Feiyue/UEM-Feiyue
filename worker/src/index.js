@@ -1,5 +1,6 @@
 /* Public submissions become GitHub Issues, never published articles. */
 import schema from '../../data/schema.json' with { type: 'json' };
+import directory from '../../data/institutions.json' with { type: 'json' };
 
 const ORIGINS = new Set(['https://uem-feiyue.github.io']);
 const REPOSITORY = 'UEM-Feiyue/UEM-Feiyue';
@@ -90,11 +91,13 @@ async function readJSON(request) {
 }
 
 function validate(payload) {
-  if (payload.version !== 1 || !schema.categories.some(({ id }) => id === payload.category))
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
+  if (payload.version !== schema.version || !schema.categories.some(({ id }) => id === payload.category))
     return null;
+  if (Object.keys(payload).some(key => !['version', 'category', 'turnstileToken', ...schema.fields.map(field => field.name)].includes(key))) return null;
   if (typeof payload.turnstileToken !== 'string' ||
       payload.turnstileToken.length < 1 || payload.turnstileToken.length > 2048) return null;
-  const record = { version: 1, category: payload.category };
+  const record = { version: schema.version, category: payload.category };
   for (const field of schema.fields) {
     const value = payload[field.name] ?? '';
     if (typeof value !== 'string' || CONTROL.test(value)) return null;
@@ -105,6 +108,10 @@ function validate(payload) {
     if (field.maxLength && clean.length > field.maxLength) return null;
     if (field.pattern && clean && !(new RegExp('^(?:' + field.pattern + ')$')).test(clean)) return null;
     record[field.name] = clean;
+  }
+  if (record.institution_id) {
+    const institution = directory.institutions.find(item => item.id === record.institution_id);
+    if (!institution || institution.name !== record.destination) return null;
   }
   return record;
 }
@@ -118,7 +125,6 @@ function base64url(value) {
 const quote = value => value.split(/\r?\n/).map(line => '> ' + line.replace(/</g, '&lt;')).join('\n');
 
 async function issueFor(record, key) {
-  const school = schema.fields.find(field => field.name === 'institution_type');
   const category = schema.categories.find(item => item.id === record.category);
   const title = '[飞跃手册投稿] [' + category.label + '] ' +
     (record.author + ' — ' + record.destination + (record.program ? ' · ' + record.program : ''))
@@ -130,7 +136,7 @@ async function issueFor(record, key) {
     '**学院：** ' + record.college,
     '**专业：** ' + record.major,
     '**去向单位：** ' + record.destination,
-    ...(record.institution_type ? ['**' + school.label + '：** ' + school.options.find(option => option.value === record.institution_type).label] : []),
+    ...schema.fields.filter(field => field.category === record.category && record[field.name] && field.name !== 'institution_id').map(field => '**' + field.label + '：** ' + (field.options?.find(option => option.value === record[field.name])?.label || record[field.name])),
     '**专业 / 项目 / 岗位：** ' + (record.program || '未填写'), '',
     '### 经历正文', quote(record.body), '',
     '### 联系方式', record.contact ? quote(record.contact) : '> 未填写', '',

@@ -12,6 +12,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = json.loads((ROOT / "data/schema.json").read_text(encoding="utf-8"))
+INSTITUTIONS = {item["id"]: item for item in json.loads((ROOT / "data/institutions.json").read_text(encoding="utf-8"))["institutions"]}
 MARKER = re.compile(r"^<!-- uem-submission-v2:([A-Za-z0-9_-]+):([A-Za-z0-9_-]+) -->$", re.M)
 SIGNING_CONTEXT = b"UEM-Feiyue:submission:v2:"
 TEAMS = {category["id"]: category["reviewTeam"] for category in SCHEMA["categories"]}
@@ -19,15 +20,19 @@ ISSUE_PREFIX = "[飞跃手册投稿] "
 
 
 def validate_record(value):
-    if not isinstance(value, dict) or value.get("version") != 1:
+    if not isinstance(value, dict) or value.get("version") not in (1, SCHEMA["version"]):
         raise ValueError("Unknown submission version")
     if value.get("category") not in {x["id"] for x in SCHEMA["categories"]}:
         raise ValueError("Invalid category")
-    allowed = {"version", "category"} | {x["name"] for x in SCHEMA["fields"]}
-    if set(value) != allowed:
+    fields = SCHEMA["fields"] if value["version"] == SCHEMA["version"] else [
+        *[dict(field, required=False) if field["name"] == "program" else field for field in SCHEMA["fields"] if field["name"] not in {"institution_id", "admission_year", "degree_type", "admission_method"}],
+        {"name": "institution_type", "category": "kaoyan", "options": [{"value": x} for x in ("985", "211", "other")]},
+    ]
+    allowed = {"version", "category"} | {x["name"] for x in fields}
+    if set(value) != allowed and not (value["version"] == 1 and set(value) == allowed - {"institution_type"}):
         raise ValueError("Unexpected or missing fields")
-    for field in SCHEMA["fields"]:
-        item = value[field["name"]]
+    for field in fields:
+        item = value.get(field["name"], "")
         if not isinstance(item, str) or re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", item):
             raise ValueError("Invalid field type")
         if item and field.get("category") and field["category"] != value["category"]:
@@ -40,6 +45,10 @@ def validate_record(value):
             raise ValueError("Oversized field")
         if field.get("pattern") and item and not re.fullmatch(field["pattern"], item):
             raise ValueError("Invalid field pattern")
+    if value["version"] == SCHEMA["version"] and value["institution_id"]:
+        institution = INSTITUTIONS.get(value["institution_id"])
+        if not institution or institution["name"] != value["destination"]:
+            raise ValueError("Institution ID and destination differ")
     return value
 
 
@@ -90,7 +99,8 @@ def import_event(event, root=ROOT, private_key=None):
     target = root / "content" / "community" / ("issue-" + str(issue["number"]) + ".md")
     if target.exists():
         return target, False
-    frontmatter = {name: record[name] for name in ("category", "author", "year", "college", "major", "destination", "institution_type", "program", "contact") if record[name]}
+    frontmatter = {name: record[name] for name in ("category", "author", "year", "college", "major", "destination", "institution_id", "admission_year", "degree_type", "admission_method", "program", "contact") if record.get(name)}
+    frontmatter["schema_version"] = record["version"]
     frontmatter["source_issue"] = issue["number"]
     target.parent.mkdir(parents=True, exist_ok=True)
     content = "---\n" + yaml.safe_dump(frontmatter, allow_unicode=True, sort_keys=False) + "---\n" + record["body"].strip() + "\n"

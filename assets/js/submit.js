@@ -15,7 +15,10 @@
   fetch('data/schema.json').then(response => {
     if (!response.ok) throw new Error('Could not load schema');
     return response.json();
-  }).then(schema => {
+  }).then(async schema => {
+    const directoryResponse = await fetch('data/institutions.json');
+    if (!directoryResponse.ok) throw new Error('Could not load institution directory');
+    const institutions = (await directoryResponse.json()).institutions;
     for (const item of schema.categories) {
       const option = make('option', item.label);
       option.value = item.id;
@@ -29,6 +32,7 @@
     for (const field of schema.fields) {
       const wrapper = make('div');
       wrapper.className = 'field';
+      if (field.type === 'hidden') wrapper.hidden = true;
       const label = make('label', field.label + (field.required ? ' *' : '（选填）'));
       label.htmlFor = field.name;
       const control = make(['textarea', 'select'].includes(field.type) ? field.type : 'input');
@@ -222,6 +226,22 @@
       const clean = year.value.replace(/[^0-9]/g, '').slice(0, 4);
       if (year.value !== clean) year.value = clean;
     });
+    const destination = controls.get('destination');
+    const institutionId = controls.get('institution_id');
+    const suggestions = make('datalist');
+    suggestions.id = 'institution-suggestions';
+    for (const item of institutions) {
+      const option = make('option');
+      option.value = item.name;
+      suggestions.append(option);
+    }
+    destination.after(suggestions);
+    const updateInstitution = () => {
+      institutionId.value = category.value === 'kaoyan'
+        ? (institutions.find(item => item.name === destination.value.trim())?.id || '') : '';
+      destination.setAttribute('list', category.value === 'kaoyan' ? suggestions.id : '');
+    };
+    destination.addEventListener('input', updateInstitution);
     const updateCategory = () => {
       for (const name of ['destination', 'program']) {
         const definition = schema.fields.find(field => field.name === name);
@@ -231,10 +251,11 @@
         const control = controls.get(field.name);
         control.disabled = field.category !== category.value;
         control.required = !control.disabled && field.required;
-        control.closest('.field').hidden = control.disabled;
+        control.closest('.field').hidden = control.disabled || field.type === 'hidden';
         control.setCustomValidity('');
         if (control.disabled) control.value = '';
       }
+      updateInstitution();
     };
     category.addEventListener('change', updateCategory);
     updateCategory();
@@ -342,8 +363,12 @@
       previewText.append(back, make('h1', title));
       const byline = make('p', [author, String(data.get('year')).trim() + ' 届', String(data.get('college') || '').trim(), String(data.get('major') || '').trim()].filter(Boolean).join(' · '));
       byline.className = 'article-byline';
-      const school = controls.get('institution_type');
-      if (school.value) byline.textContent += ' · ' + school.selectedOptions[0].textContent;
+      const institution = institutions.find(item => item.id === institutionId.value);
+      if (institution) {
+        for (const [key, label] of [['double_first_class', '双一流'], ['self_defined_cutoff', '自划线']]) {
+          if (institution.attributes[key] === true) byline.textContent += ' · ' + label;
+        }
+      }
       previewText.append(byline);
       const body = make('div');
       body.className = 'article-body';
@@ -401,7 +426,7 @@
         const token = widgetId === null ? '' : window.turnstile?.getResponse(widgetId);
         if (!token) { say('请先完成人机验证。', 'error'); return; }
         const values = Object.fromEntries(new FormData(form));
-        const payload = { version: 1, ...values, turnstileToken: token };
+        const payload = { version: schema.version, ...values, turnstileToken: token };
         if (new TextEncoder().encode(JSON.stringify(payload)).length > 65536) {
           say('内容过长，请精简后重试。', 'error');
           return;

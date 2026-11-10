@@ -14,6 +14,7 @@ CONTENT = ROOT / "content"
 OUTPUT = ROOT / "articles"
 INDEX = ROOT / "data" / "articles.json"
 SCHEMA = json.loads((ROOT / "data" / "schema.json").read_text(encoding="utf-8"))
+INSTITUTIONS = {item["id"]: item for item in json.loads((ROOT / "data" / "institutions.json").read_text(encoding="utf-8"))["institutions"]}
 CATEGORIES = {item["id"]: item["label"] for item in SCHEMA["categories"]}
 YEAR_SUFFIX = next(field.get("suffix", "") for field in SCHEMA["fields"] if field["name"] == "year")
 
@@ -45,13 +46,18 @@ def parse(path):
             raise ValueError(f"{path}: invalid {name}")
         if field.get("options") and name in meta:
             meta[name] = value
-        if field.get("required") and field.get("category", meta["category"]) == meta["category"] and not value:
+        required_here = meta.get("schema_version", 1) == SCHEMA["version"] or name not in {"program", "admission_year", "degree_type", "admission_method"}
+        if required_here and field.get("required") and field.get("category", meta["category"]) == meta["category"] and not value:
             raise ValueError(f"{path}: missing {name}")
         if field.get("maxLength") and len(value) > field["maxLength"]:
             raise ValueError(f"{path}: {name} exceeds maximum length")
         if value and field.get("pattern") and not re.fullmatch(field["pattern"], value):
             raise ValueError(f"{path}: invalid {name}")
     meta["year"] = str(meta["year"]).strip()
+    if meta.get("institution_id"):
+        institution = INSTITUTIONS.get(meta["institution_id"])
+        if not institution or institution["name"] != meta.get("destination"):
+            raise ValueError(f"{path}: invalid institution_id")
     if path.stem == "README":
         raise ValueError("README cannot be an article")
     return meta, body
@@ -96,10 +102,11 @@ def shared_chrome(source, page, prefix="./", category=None):
 
 
 def institution_label(meta):
-    if not meta.get("institution_type"):
+    institution = INSTITUTIONS.get(meta.get("institution_id"))
+    if not institution:
         return ""
-    field = next(field for field in SCHEMA["fields"] if field["name"] == "institution_type")
-    return next(option["label"] for option in field["options"] if option["value"] == meta["institution_type"])
+    labels = {"double_first_class": "双一流", "self_defined_cutoff": "自划线"}
+    return " · ".join(label for key, label in labels.items() if institution["attributes"].get(key) is True)
 
 
 def render(meta, body, url):
@@ -164,7 +171,7 @@ def main():
             "major": str(meta.get("major", "")),
             "program": str(meta.get("program", "")),
             "destination": str(meta.get("destination", "")),
-            "institution_type": str(meta.get("institution_type", "")),
+            "institution_id": str(meta.get("institution_id", "")),
             "excerpt": str(meta.get("excerpt") or re.sub(r"\s+", " ", re.sub(r"[#*_`]", "", body))[:150]),
             "tags": meta.get("tags", []),
             "url": url,
