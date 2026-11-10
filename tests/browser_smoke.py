@@ -298,7 +298,10 @@ def main():
                     assert page.locator("#search-results .search-match mark").count() > 0
                     page.locator("#search-results li a").first.click()
                     page.wait_for_selector(".article-body")
-                    assert articles[0]["author"] not in page.locator(".article-page > h1").inner_text()
+                    opened_article = next((entry for entry in articles
+                                           if page.url.split("?")[0].endswith("/" + entry["url"])), None)
+                    assert opened_article is not None
+                    assert opened_article["author"] not in page.locator(".article-page > h1").inner_text()
                     if width == 1600:
                         assert page.evaluate("""() => {
                             const main = document.querySelector('main.content');
@@ -309,7 +312,7 @@ def main():
                             return Math.abs(content.left - box.left - parseFloat(style.paddingLeft)) < 2 &&
                                 Math.abs(content.right - box.right + parseFloat(style.paddingRight)) < 2;
                         }""")
-                    assert page.locator(".demo-badge").is_visible() == articles[0]["demo"]
+                    assert page.locator(".demo-badge").is_visible() == opened_article["demo"]
                     assert page.locator(".article-toc").count() <= 1
                     if page.locator(".article-toc").count():
                         assert page.locator(".article-toc").evaluate("el => el.tagName") == "DETAILS"
