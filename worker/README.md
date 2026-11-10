@@ -10,15 +10,15 @@ maintainer review.
 - Worker name: `uem-feiyue-submissions`.
 - API: `POST /submit`; public liveness endpoint: `GET /health`.
 - Cloudflare Turnstile widget: restrict to `uem-feiyue.github.io`, action `uem_feiyue_submit`.
-- Worker secrets: `GITHUB_TOKEN` and `TURNSTILE_SECRET`. Never commit their values.
-- GitHub fine-grained PAT: restricted to Source, **Issues: Read and write** only.
+- Worker secrets: `GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY` (PKCS#8 PEM), and `TURNSTILE_SECRET`. Never commit their values.
+- The UEM Feiyue Site Automation App must be installed only on Source and Published, with Contents write, Issues write, and organization Members read. The Worker requests a Source-only, Issues-only installation token.
 - Create the GitHub label `submission:pending` before enabling public submissions.
 - The native rate limit binding is edge-local: three attempts per minute per IP, not a globally strict quota. The configuration's numeric namespace ID is local to this Worker; ensure it does not collide with another binding in the Cloudflare account.
 - Allowlist the exact production origin only; no wildcard, no preview environment.
 
 Run from `worker/` with Wrangler: `npx wrangler deploy`.
 Before deployment, add secrets with
-`npx wrangler secret put GITHUB_TOKEN` and
+`npx wrangler secret put GITHUB_APP_ID`, `npx wrangler secret put GITHUB_APP_INSTALLATION_ID`, `npx wrangler secret put GITHUB_APP_PRIVATE_KEY`, and
 `npx wrangler secret put TURNSTILE_SECRET`.
 The checked-in configuration is **closed by default**.
 To launch, explicitly set both production variables to
@@ -40,7 +40,7 @@ Successful creation returns HTTP 201:
 A success response means **an Issue exists**, not that the story was approved
 or published. Issues are public immediately, including any voluntarily
 provided contact information. The Issue body includes an auditable
-`uem-submission-v1` data marker for a future trusted publication importer.
+`uem-submission-v2` data marker signed by the GitHub App key. The importer verifies this signature before trusting the category or content.
 Never publish directly from this untrusted Worker.
 
 The submission UI has a public configuration in `assets/js/submission-config.js`,
@@ -48,9 +48,9 @@ including the public Site Key and Worker endpoint. Its public `enabled` switch i
 still depends on Cloudflare `SUBMISSION_MODE=public` and `SUBMISSIONS_DISABLED=false`.
 Do not treat the public browser switch as a security boundary.
 The trusted GitHub Actions importer in `scripts/import_completed_submission.py`
-creates `content/community/issue-<number>.md` only for UEM submission Issues
-  closed **as completed by FuTseYi** in Source. Ordinary closures, PRs, invalid markers,
-other users and duplicate imports do not publish. A successful import pushes
+creates `content/community/issue-<number>.md` only for App-created, signed UEM submission Issues
+closed **as completed by a member of the signed category's review Team or an organization Owner** in Source. Ordinary closures, PRs, invalid markers,
+unauthorized reviewers and duplicate imports do not publish. A successful import pushes
 Markdown to main, triggering the existing static site deployment. GitHub Actions
 requires `contents: write` and repository workflow permission to push to main.
   Use `not planned` for synthetic workflow checks; completed closures publish
@@ -60,7 +60,7 @@ requires `contents: write` and repository workflow permission to push to main.
 
 Only permitted origins receive CORS headers. Every POST requires an explicit
 open switch, a configured rate limiter, a bounded JSON body, server-side
-Turnstile Siteverify (including hostname and action), and the GitHub token.
+Turnstile Siteverify (including hostname and action), and the GitHub App credentials.
 Any dependency failure rejects the request. No IP is placed into Issues.
 An attacker can still abuse a public endpoint; monitor GitHub and Worker usage,
 rotate credentials when necessary, and close the kill switch if abuse occurs.
