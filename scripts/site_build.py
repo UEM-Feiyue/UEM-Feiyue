@@ -15,7 +15,7 @@ def build(root, destination, options):
                         ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     for name in SOURCE_FILES:
         shutil.copy2(root / name, candidate / name)
-    result = subprocess.run([sys.executable, str(candidate / "scripts/build.py")],
+    result = subprocess.run([sys.executable, "-m", "scripts.build"],
                             cwd=candidate, capture_output=True, encoding="utf-8", errors="replace")
     if result.returncode:
         sys.stderr.write(result.stdout + result.stderr)

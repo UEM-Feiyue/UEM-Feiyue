@@ -6,10 +6,8 @@ import re
 from pathlib import Path
 from urllib.parse import quote
 
-import bleach
-import markdown
-from markdown.extensions.toc import slugify_unicode
 import yaml
+from scripts.markdown_render import render_markdown
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content"
@@ -23,10 +21,6 @@ YEAR_SUFFIX = next(field.get("suffix", "") for field in SCHEMA["fields"] if fiel
 def display_year(value):
     value = str(value).strip()
     return value + (" " + YEAR_SUFFIX if re.fullmatch(r"[0-9]{4}", value) else "")
-ALLOWED_TAGS = set(bleach.sanitizer.ALLOWED_TAGS) | {"p", "h1", "h2", "h3", "h4", "del", "input", "pre", "code", "blockquote", "hr", "br", "img", "table", "thead", "tbody", "tr", "th", "td"}
-ALLOWED_ATTRS = {"a": ["href", "title"], "img": ["src", "alt", "title"], "th": ["align"], "td": ["align"], "h1": ["id"], "h2": ["id"], "h3": ["id"], "input": ["type", "checked", "disabled"]}
-
-
 def parse(path):
     source = path.read_text(encoding="utf-8")
     match = re.match(r"\A---\s*\n(.*?)\n---\s*\n(.*)\Z", source, re.S)
@@ -96,9 +90,7 @@ def shared_chrome(source, page, prefix="./", category=None):
 
 
 def render(meta, body, url):
-    # Escape inline HTML before Markdown conversion; sanitize generated HTML too.
-    rendered = markdown.markdown(html.escape(body), extensions=["extra", "toc", "sane_lists", "pymdownx.tilde", "pymdownx.tasklist"], extension_configs={"toc": {"slugify": slugify_unicode}})
-    clean = bleach.clean(rendered, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRS, protocols=["http", "https", "mailto"], strip=True)
+    clean = render_markdown(body)
     byline = " · ".join(html.escape(display_year(meta[k]) if k == "year" else str(meta[k])) for k in ("author", "year", "college", "major") if meta.get(k))
     headings = re.findall(r'<h([23]) id="([^"]+)">(.+?)</h[23]>', clean)
     toc = '<details class="article-toc"><summary>本页目录</summary><div class="article-toc-panel"><div class="article-toc-clip"><ul>' + ''.join(f'<li class="toc-depth-{level}"><a href="#{html.escape(anchor, quote=True)}">{text}</a></li>' for level, anchor, text in headings) + '</ul></div></div></details>' if len(headings) >= 2 else ''

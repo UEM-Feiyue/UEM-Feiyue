@@ -51,7 +51,8 @@ def main():
                     page.on("pageerror", lambda error: errors.append(str(error)))
                     page.goto(base + PREFIX + "/", wait_until="networkidle")
                     assert page.locator("h1:visible").count() == 1
-                    assert page.locator(".article-item .article-meta").first.inner_text().endswith("某学院 · 某专业")
+                    first_meta = page.locator(".article-item .article-meta").first.inner_text()
+                    assert first_meta.endswith(articles[0]["college"] + " · " + articles[0]["major"])
                     assert page.locator(".article-item h3").first.inner_text().startswith(articles[0]["author"] + " — ")
                     assert page.locator(".article-item").first.evaluate("el => el.querySelector('h3').compareDocumentPosition(el.querySelector('.article-meta')) & Node.DOCUMENT_POSITION_FOLLOWING")
                     # A bounded image banner retains aspect ratio at desktop/mobile sizes.
@@ -297,7 +298,10 @@ def main():
                     assert page.locator("#search-results .search-match mark").count() > 0
                     page.locator("#search-results li a").first.click()
                     page.wait_for_selector(".article-body")
-                    assert articles[0]["author"] not in page.locator(".article-page > h1").inner_text()
+                    opened_article = next((entry for entry in articles
+                                           if page.url.split("?")[0].endswith("/" + entry["url"])), None)
+                    assert opened_article is not None
+                    assert opened_article["author"] not in page.locator(".article-page > h1").inner_text()
                     if width == 1600:
                         assert page.evaluate("""() => {
                             const main = document.querySelector('main.content');
@@ -308,7 +312,7 @@ def main():
                             return Math.abs(content.left - box.left - parseFloat(style.paddingLeft)) < 2 &&
                                 Math.abs(content.right - box.right + parseFloat(style.paddingRight)) < 2;
                         }""")
-                    assert page.locator(".demo-badge").is_visible() == articles[0]["demo"]
+                    assert page.locator(".demo-badge").is_visible() == opened_article["demo"]
                     assert page.locator(".article-toc").count() <= 1
                     if page.locator(".article-toc").count():
                         assert page.locator(".article-toc").evaluate("el => el.tagName") == "DETAILS"
@@ -510,6 +514,19 @@ def main():
             assert appearance("#preview-text .article-body") == expected["body"]
             assert appearance("#preview-text .article-body h2") == expected["h2"]
             assert appearance("#preview-text > h1") == expected["title_style"]
+            # Blockquotes are structural Markdown, not a literal leading '>'.
+            # Both the inline editor and the full article preview must render them.
+            quoted = ("> 本文仅用于系统测试，不代表真实录取。\n\n"
+                      "## 一、前期准备\n\n1. 基础\n2. 强化\n\n"
+                      "**测试标记：UEM-QA-POSTGRAD-001**")
+            page.locator("#body").fill(quoted)
+            page.locator("#preview-button").click()
+            quote = page.locator("#preview-text .article-body blockquote")
+            assert quote.count() == 1
+            assert quote.inner_text() == "本文仅用于系统测试，不代表真实录取。"
+            assert quote.evaluate("el => getComputedStyle(el).borderLeftStyle") == "solid"
+            page.locator(".markdown-preview-toggle").click()
+            assert page.locator(".markdown-preview blockquote").count() == 1
             context.close()
             # A phrase found only in the article body must be searchable.
             context = browser.new_context()
