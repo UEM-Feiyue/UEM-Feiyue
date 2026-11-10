@@ -1,14 +1,4 @@
 {
-  "version": 2,
-  "legacy": {
-    "version": 1,
-    "fields": ["author", "year", "college", "major", "destination", "program", "body", "contact"],
-    "optional": ["program"],
-    "institution_type": {
-      "category": "kaoyan",
-      "options": ["985", "211", "other"]
-    }
-  },
   "categories": [
     {
       "id": "kaoyan",
@@ -89,54 +79,10 @@
       }
     },
     {
-      "name": "institution_id",
-      "label": "招生单位",
-      "type": "hidden",
-      "required": false,
-      "category": "kaoyan",
-      "hint": "未收录单位可留空，由审核者核实。"
-    },
-    {
-      "name": "admission_year",
-      "label": "录取年份",
-      "type": "text",
-      "required": true,
-      "category": "kaoyan",
-      "maxLength": 4,
-      "inputMode": "numeric",
-      "pattern": "[0-9]{4}",
-      "placeholder": "2026"
-    },
-    {
-      "name": "degree_type",
-      "label": "学位类型",
-      "type": "select",
-      "required": true,
-      "category": "kaoyan",
-      "options": [
-        {"value": "academic", "label": "学术学位"},
-        {"value": "professional", "label": "专业学位"},
-        {"value": "other", "label": "其他 / 不适用"}
-      ]
-    },
-    {
-      "name": "admission_method",
-      "label": "录取方式",
-      "type": "select",
-      "required": true,
-      "category": "kaoyan",
-      "options": [
-        {"value": "exam", "label": "全国统考"},
-        {"value": "recommendation", "label": "推荐免试"},
-        {"value": "independent", "label": "单独考试"},
-        {"value": "other", "label": "其他"}
-      ]
-    },
-    {
       "name": "program",
       "label": "专业 / 项目 / 岗位",
       "type": "text",
-      "required": true,
+      "required": false,
       "maxLength": 120,
       "placeholders": {
         "kaoyan": "例如 计算机科学与技术",

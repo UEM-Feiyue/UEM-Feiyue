@@ -49,8 +49,6 @@ python preview.py
 
 ## 构建与发布
 
-投稿协议由 [`data/schema.json`](data/schema.json) 统一定义；考研单位目录位于 [`data/institutions.json`](data/institutions.json)，仅录入有官方依据的属性。新投稿使用数据版本 2，原有签名 Issue 和旧文章继续兼容。未收录单位可投稿，目录属性未知时不显示推断标签。Worker 独立部署且仓库配置默认关闭，网站发布不会自动更新生产 Worker。
-
 **Source**（本仓库）维护页面、文章、投稿审核和唯一的生产构建。**Published**（`UEM-Feiyue/UEM-Feiyue.github.io`）只保存构建结果；GitHub Pages 直接部署其 `main`，不在发布仓库重新构建。Published 的 `README.md` 由 [PUBLISHED_README.md](PUBLISHED_README.md) 生成。
 
 ```mermaid
