@@ -5,6 +5,44 @@ const ORIGINS = new Set(['https://uem-feiyue.github.io']);
 const REPOSITORY = 'UEM-Feiyue/UEM-Feiyue-Site-Source';
 const MAX_BYTES = 65536;
 const CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/;
+const SIGNING_CONTEXT = 'UEM-Feiyue:submission:v2:';
+
+function appBase64Url(bytes) {
+  let value = '';
+  for (const byte of bytes) value += String.fromCharCode(byte);
+  return btoa(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function appSigningKey(env) {
+  const pem = env.GITHUB_APP_PRIVATE_KEY?.replace(/\\n/g, '\n') || '';
+  const match = pem.match(/-----BEGIN PRIVATE KEY-----([\s\S]+?)-----END PRIVATE KEY-----/);
+  if (!match) throw Error('GitHub App PKCS#8 private key is missing');
+  const raw = Uint8Array.from(atob(match[1].replace(/\s/g, '')), char => char.charCodeAt(0));
+  return crypto.subtle.importKey('pkcs8', raw, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
+}
+
+async function installationToken(env, key) {
+  if (!/^\d+$/.test(env.GITHUB_APP_ID || '') || !/^\d+$/.test(env.GITHUB_APP_INSTALLATION_ID || ''))
+    throw Error('GitHub App identity is missing');
+  const now = Math.floor(Date.now() / 1000);
+  const header = appBase64Url(new TextEncoder().encode(JSON.stringify({ alg: 'RS256', typ: 'JWT' })));
+  const payload = appBase64Url(new TextEncoder().encode(JSON.stringify({ iat: now - 60, exp: now + 480, iss: env.GITHUB_APP_ID })));
+  const input = header + '.' + payload;
+  const signature = appBase64Url(new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(input))));
+  const response = await fetch('https://api.github.com/app/installations/' + env.GITHUB_APP_INSTALLATION_ID + '/access_tokens', {
+    method: 'POST', headers: {
+      Authorization: 'Bearer ' + input + '.' + signature,
+      Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'UEM-Feiyue-Submission'
+    },
+    body: JSON.stringify({ repositories: ['UEM-Feiyue-Site-Source'], permissions: { issues: 'write' } }),
+    signal: AbortSignal.timeout(10000)
+  });
+  if (!response.ok) throw Error('GitHub App token exchange failed: ' + response.status);
+  const result = await response.json();
+  if (!result.token) throw Error('GitHub App token missing');
+  return result.token;
+}
 
 function respond(data, status = 200, origin) {
   return new Response(JSON.stringify(data), {
@@ -77,7 +115,7 @@ function base64url(value) {
 }
 const quote = value => value.split(/\r?\n/).map(line => '> ' + line.replace(/</g, '&lt;')).join('\n');
 
-function issueFor(record) {
+async function issueFor(record, key) {
   const category = schema.categories.find(item => item.id === record.category);
   const title = '[飞跃手册投稿] [' + category.label + '] ' +
     (record.author + ' — ' + record.destination + (record.program ? ' · ' + record.program : ''))
@@ -94,8 +132,12 @@ function issueFor(record) {
     '**专业 / 项目 / 岗位：** ' + (record.program || '未填写'), '',
     '### 经历正文', quote(record.body), '',
     '### 联系方式', record.contact ? quote(record.contact) : '> 未填写', '',
-    '<!-- uem-submission-v1:' + base64url(record) + ' -->'
+    '**审核组：** @UEM-Feiyue/' + category.reviewTeam
   ];
+  const encoded = base64url(record);
+  const signature = appBase64Url(new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key,
+    new TextEncoder().encode(SIGNING_CONTEXT + encoded))));
+  lines.push('', '<!-- uem-submission-v2:' + encoded + ':' + signature + ' -->');
   return { title, body: lines.join('\n'), labels: ['submission:pending'] };
 }
 
@@ -120,7 +162,7 @@ export default {
     if (request.method !== 'POST') return reject('Method not allowed', 405);
     if (env.SUBMISSIONS_DISABLED !== 'false' || env.SUBMISSION_MODE !== 'public')
       return reject('投稿服务尚未开放。', 503);
-    if (!env.GITHUB_TOKEN || !env.TURNSTILE_SECRET || !env.SUBMISSION_LIMITER)
+    if (!env.GITHUB_APP_ID || !env.GITHUB_APP_INSTALLATION_ID || !env.GITHUB_APP_PRIVATE_KEY || !env.TURNSTILE_SECRET || !env.SUBMISSION_LIMITER)
       return reject('投稿服务尚未配置完成。', 503);
     if (!/^application\/json(?:\s*;|$)/i.test(request.headers.get('Content-Type') || ''))
       return reject('仅支持 JSON 格式。', 415);
@@ -162,15 +204,17 @@ export default {
 
     let issue;
     try {
+      const key = await appSigningKey(env);
+      const token = await installationToken(env, key);
       const response = await fetch('https://api.github.com/repos/' + REPOSITORY + '/issues', {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer ' + env.GITHUB_TOKEN,
+          'Authorization': 'Bearer ' + token,
           'Accept': 'application/vnd.github+json',
           'X-GitHub-Api-Version': '2022-11-28',
           'User-Agent': 'UEM-Feiyue-Submission'
         },
-        body: JSON.stringify(issueFor(record)),
+        body: JSON.stringify(await issueFor(record, key)),
         signal: AbortSignal.timeout(10000)
       });
       if (!response.ok) throw Error('GitHub issue creation failed: ' + response.status);

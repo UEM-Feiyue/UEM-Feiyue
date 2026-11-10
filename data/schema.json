@@ -2,21 +2,25 @@
   "categories": [
     {
       "id": "kaoyan",
+      "reviewTeam": "postgraduate-reviewers",
       "label": "考研",
       "description": "备考、复试与录取经历"
     },
     {
       "id": "overseas",
+      "reviewTeam": "study-abroad-reviewers",
       "label": "留学",
       "description": "选校、申请与海外求学"
     },
     {
       "id": "career",
+      "reviewTeam": "career-reviewers",
       "label": "就业",
       "description": "实习、校招与职场起步"
     },
     {
       "id": "public",
+      "reviewTeam": "public-sector-reviewers",
       "label": "考公考编",
       "description": "备考、招录与面试经验"
     }
