@@ -79,10 +79,22 @@
       }
     },
     {
+      "name": "institution_type",
+      "label": "录取院校层次",
+      "type": "select",
+      "required": true,
+      "category": "kaoyan",
+      "options": [
+        {"value": "985", "label": "985 院校"},
+        {"value": "211", "label": "211 院校（非985）"},
+        {"value": "other", "label": "其他院校 / 科研院所"}
+      ]
+    },
+    {
       "name": "program",
       "label": "专业 / 项目 / 岗位",
       "type": "text",
-      "required": false,
+      "required": true,
       "maxLength": 120,
       "placeholders": {
         "kaoyan": "例如 计算机科学与技术",

@@ -43,6 +43,19 @@ test('renders a signed, reviewable Issue', async () => {
   assert.doesNotMatch(issue.body, /飞跃手册经历投稿（待审核）|公开投稿，内容尚未经核实|\*\*审核组：\*\*/);
   assert.doesNotMatch(issue.body, /sample-token/);
 });
+test('requires program everywhere and institution type only for postgraduate submissions', async () => {
+  for (const category of ['kaoyan', 'overseas', 'career', 'public']) {
+    assert.equal(validate({ ...valid, category, institution_type: category === 'kaoyan' ? '985' : '', program: '' }), null);
+  }
+  assert.equal(validate({ ...valid, category: 'kaoyan' }), null);
+  assert.equal(validate({ ...valid, institution_type: '985' }), null);
+  assert.equal(validate({ ...valid, category: 'kaoyan', institution_type: 'fake' }), null);
+  for (const institution_type of ['985', '211', 'other']) {
+    const record = validate({ ...valid, category: 'kaoyan', institution_type });
+    assert.equal(record.institution_type, institution_type);
+    assert.match((await issueFor(record, signingKey)).body, /录取院校层次/);
+  }
+});
 test('fails closed before contacting external services', async () => {
   let contacted = false;
   const oldFetch = globalThis.fetch;

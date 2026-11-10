@@ -39,7 +39,13 @@ def parse(path):
         if not isinstance(value, (str, int)) or isinstance(value, bool):
             raise ValueError(f"{path}: invalid {name}")
         value = str(value).strip()
-        if field.get("required") and not value:
+        if value and field.get("category") and field["category"] != meta["category"]:
+            raise ValueError(f"{path}: {name} does not apply to category")
+        if value and field.get("options") and value not in {option["value"] for option in field["options"]}:
+            raise ValueError(f"{path}: invalid {name}")
+        if field.get("options") and name in meta:
+            meta[name] = value
+        if field.get("required") and field.get("category", meta["category"]) == meta["category"] and not value:
             raise ValueError(f"{path}: missing {name}")
         if field.get("maxLength") and len(value) > field["maxLength"]:
             raise ValueError(f"{path}: {name} exceeds maximum length")
@@ -89,9 +95,19 @@ def shared_chrome(source, page, prefix="./", category=None):
     return source
 
 
+def institution_label(meta):
+    if not meta.get("institution_type"):
+        return ""
+    field = next(field for field in SCHEMA["fields"] if field["name"] == "institution_type")
+    return next(option["label"] for option in field["options"] if option["value"] == meta["institution_type"])
+
+
 def render(meta, body, url):
     clean = render_markdown(body)
     byline = " · ".join(html.escape(display_year(meta[k]) if k == "year" else str(meta[k])) for k in ("author", "year", "college", "major") if meta.get(k))
+    school = institution_label(meta)
+    if school:
+        byline += " · " + html.escape(school)
     headings = re.findall(r'<h([23]) id="([^"]+)">(.+?)</h[23]>', clean)
     toc = '<details class="article-toc"><summary>本页目录</summary><div class="article-toc-panel"><div class="article-toc-clip"><ul>' + ''.join(f'<li class="toc-depth-{level}"><a href="#{html.escape(anchor, quote=True)}">{text}</a></li>' for level, anchor, text in headings) + '</ul></div></div></details>' if len(headings) >= 2 else ''
     demo = '<span class="demo-badge">演示</span>' if meta.get('demo') is True else ''
@@ -112,7 +128,7 @@ def render_home(entries):
     for entry in entries:
         badge = '<span class="demo-badge">演示</span>' if entry["demo"] else ''
         esc = lambda value: html.escape(str(value), quote=True)
-        label = ' · '.join(filter(None, (entry["year"] + ' 届', entry["college"], entry["major"])))
+        label = ' · '.join(filter(None, (entry["year"] + ' 届', entry["college"], entry["major"], institution_label(entry))))
         cards.append(f'<article class="article-item" data-category="{esc(entry["category"])}" data-year="{esc(entry["year"])}" data-demo="{str(entry["demo"]).lower()}">{badge}<h3><a href="./{esc(entry["url"])}">{esc(entry["author"])} — {esc(entry["title"])}</a></h3><p class="article-meta">{esc(label)}</p><a class="article-more" href="./{esc(entry["url"])}">阅读全文<span class="link-arrow"></span></a></article>')
     source = re.sub(r'(<div id="articles"[^>]*>).*?(</div>)', lambda m: m[1] + ''.join(cards) + m[2], source, count=1, flags=re.S)
     years = ''.join(f'<option value="{html.escape(year, quote=True)}">{html.escape(year)}</option>' for year in sorted({entry["year"] for entry in entries}, reverse=True))
@@ -148,6 +164,7 @@ def main():
             "major": str(meta.get("major", "")),
             "program": str(meta.get("program", "")),
             "destination": str(meta.get("destination", "")),
+            "institution_type": str(meta.get("institution_type", "")),
             "excerpt": str(meta.get("excerpt") or re.sub(r"\s+", " ", re.sub(r"[#*_`]", "", body))[:150]),
             "tags": meta.get("tags", []),
             "url": url,

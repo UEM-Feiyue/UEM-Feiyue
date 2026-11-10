@@ -30,7 +30,11 @@ def validate_record(value):
         item = value[field["name"]]
         if not isinstance(item, str) or re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", item):
             raise ValueError("Invalid field type")
-        if field.get("required") and not item.strip():
+        if item and field.get("category") and field["category"] != value["category"]:
+            raise ValueError("Field does not apply to category")
+        if item and field.get("options") and item not in {option["value"] for option in field["options"]}:
+            raise ValueError("Invalid field option")
+        if field.get("required") and field.get("category", value["category"]) == value["category"] and not item.strip():
             raise ValueError("Missing field")
         if field.get("maxLength") and len(item.strip()) > field["maxLength"]:
             raise ValueError("Oversized field")
@@ -86,7 +90,7 @@ def import_event(event, root=ROOT, private_key=None):
     target = root / "content" / "community" / ("issue-" + str(issue["number"]) + ".md")
     if target.exists():
         return target, False
-    frontmatter = {name: record[name] for name in ("category", "author", "year", "college", "major", "destination", "program", "contact") if record[name]}
+    frontmatter = {name: record[name] for name in ("category", "author", "year", "college", "major", "destination", "institution_type", "program", "contact") if record[name]}
     frontmatter["source_issue"] = issue["number"]
     target.parent.mkdir(parents=True, exist_ok=True)
     content = "---\n" + yaml.safe_dump(frontmatter, allow_unicode=True, sort_keys=False) + "---\n" + record["body"].strip() + "\n"

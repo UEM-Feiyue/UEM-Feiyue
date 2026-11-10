@@ -99,7 +99,9 @@ function validate(payload) {
     const value = payload[field.name] ?? '';
     if (typeof value !== 'string' || CONTROL.test(value)) return null;
     const clean = value.trim();
-    if (field.required && !clean) return null;
+    if (clean && field.category && field.category !== payload.category) return null;
+    if (clean && field.options && !field.options.some(option => option.value === clean)) return null;
+    if (field.required && (!field.category || field.category === payload.category) && !clean) return null;
     if (field.maxLength && clean.length > field.maxLength) return null;
     if (field.pattern && clean && !(new RegExp('^(?:' + field.pattern + ')$')).test(clean)) return null;
     record[field.name] = clean;
@@ -116,6 +118,7 @@ function base64url(value) {
 const quote = value => value.split(/\r?\n/).map(line => '> ' + line.replace(/</g, '&lt;')).join('\n');
 
 async function issueFor(record, key) {
+  const school = schema.fields.find(field => field.name === 'institution_type');
   const category = schema.categories.find(item => item.id === record.category);
   const title = '[飞跃手册投稿] [' + category.label + '] ' +
     (record.author + ' — ' + record.destination + (record.program ? ' · ' + record.program : ''))
@@ -127,6 +130,7 @@ async function issueFor(record, key) {
     '**学院：** ' + record.college,
     '**专业：** ' + record.major,
     '**去向单位：** ' + record.destination,
+    ...(record.institution_type ? ['**' + school.label + '：** ' + school.options.find(option => option.value === record.institution_type).label] : []),
     '**专业 / 项目 / 岗位：** ' + (record.program || '未填写'), '',
     '### 经历正文', quote(record.body), '',
     '### 联系方式', record.contact ? quote(record.contact) : '> 未填写', '',

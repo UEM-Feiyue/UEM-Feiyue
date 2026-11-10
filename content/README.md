@@ -10,7 +10,8 @@ year: "2026"
 college: 学院
 major: 专业
 destination: 最终去向
-program: 专业、项目或岗位（可选）
+institution_type: "985" # 考研必填：985、211（非985）或 other
+program: 专业、项目或岗位（必填）
 contact: 邮箱或社交账号（可选，公开展示）
 excerpt: 一句话摘要（可选）
 tags:

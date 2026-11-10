@@ -21,7 +21,7 @@ PEM = KEY.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.
 def fixture():
     record = {"version": 1, "category": "career", "author": "张同学", "year": "2026", "college": "某学院", "major": "某专业",
               "destination": "某企业", "program": "产品经理", "body": "## 我的经历\n\n具体经历。",
-              "contact": ""}
+              "contact": "", "institution_type": ""}
     payload = base64.urlsafe_b64encode(json.dumps(record, ensure_ascii=False).encode()).decode().rstrip("=")
     signature = KEY.sign(module.SIGNING_CONTEXT + payload.encode(), padding.PKCS1v15(), hashes.SHA256())
     signed = base64.urlsafe_b64encode(signature).decode().rstrip("=")
@@ -33,6 +33,29 @@ def fixture():
 
 
 class PublicationTests(unittest.TestCase):
+    def test_required_school_field_and_signed_publication(self):
+        from scripts import build
+        event = fixture()
+        record = module.decode_issue(event["issue"], PEM)
+        for edit in ({"program": ""}, {"category": "kaoyan"}, {"institution_type": "985"}):
+            with self.subTest(edit=edit), self.assertRaises(ValueError):
+                module.validate_record(dict(record, **edit))
+        incomplete = dict(record)
+        incomplete.pop("institution_type")
+        with self.assertRaises(ValueError):
+            module.validate_record(incomplete)
+        record.update(category="kaoyan", institution_type="985")
+        encoded = base64.urlsafe_b64encode(json.dumps(record).encode()).decode().rstrip("=")
+        signature = KEY.sign(module.SIGNING_CONTEXT + encoded.encode(), padding.PKCS1v15(), hashes.SHA256())
+        signed = base64.urlsafe_b64encode(signature).decode().rstrip("=")
+        event["issue"]["body"] = "<!-- uem-submission-v2:" + encoded + ":" + signed + " -->"
+        event["issue"]["title"] = event["issue"]["title"].replace("[就业]", "[考研]")
+        with tempfile.TemporaryDirectory() as directory:
+            path, _ = module.import_event(event, Path(directory), PEM)
+            meta, body = build.parse(path)
+            self.assertEqual(meta["institution_type"], "985")
+            self.assertIn("985 院校</p>", build.render(meta, body, "articles/test.html"))
+
     def test_reviewed_commit_triggers_source_publication(self):
         workflow = (ROOT / '.github/workflows/publish-completed-submission.yml').read_text(encoding='utf-8')
         deploy = (ROOT / '.github/workflows/deploy.yml').read_text(encoding='utf-8')
