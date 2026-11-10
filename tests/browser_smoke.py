@@ -512,9 +512,9 @@ def main():
             assert appearance("#preview-text > h1") == expected["title_style"]
             # Blockquotes are structural Markdown, not a literal leading '>'.
             # Both the inline editor and the full article preview must render them.
-            quoted = ("> 本文仅用于系统测试，不代表真实录取。\\n\\n"
-                      "## 一、前期准备\\n\\n1. 基础\\n2. 强化\\n\\n"
-                      "**测试标记：UEM-QA-POSTGRAD-001**").replace("\\\\n", "\\n")
+            quoted = ("> 本文仅用于系统测试，不代表真实录取。\n\n"
+                      "## 一、前期准备\n\n1. 基础\n2. 强化\n\n"
+                      "**测试标记：UEM-QA-POSTGRAD-001**")
             page.locator("#body").fill(quoted)
             page.locator("#preview-button").click()
             quote = page.locator("#preview-text .article-body blockquote")
