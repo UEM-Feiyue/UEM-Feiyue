@@ -121,8 +121,6 @@ async function issueFor(record, key) {
     (record.author + ' — ' + record.destination + (record.program ? ' · ' + record.program : ''))
       .replace(/\s+/g, ' ').slice(0, 95);
   const lines = [
-    '## 飞跃手册经历投稿（待审核）', '',
-    '> 公开投稿，内容尚未经核实。联系方式（如填写）也会公开，请审核后再发布。', '',
     '**方向：** ' + category.label,
     '**作者：** ' + record.author,
     '**毕业届次：** ' + record.year,
@@ -132,7 +130,8 @@ async function issueFor(record, key) {
     '**专业 / 项目 / 岗位：** ' + (record.program || '未填写'), '',
     '### 经历正文', quote(record.body), '',
     '### 联系方式', record.contact ? quote(record.contact) : '> 未填写', '',
-    '**审核组：** @UEM-Feiyue/' + category.reviewTeam
+    '---', '',
+    '**已分配至：** @UEM-Feiyue/' + category.reviewTeam
   ];
   const encoded = base64url(record);
   const signature = appBase64Url(new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key,

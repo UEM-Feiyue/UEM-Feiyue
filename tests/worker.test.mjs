@@ -38,8 +38,9 @@ test('renders a signed, reviewable Issue', async () => {
   assert.match(issue.title, /^\[飞跃手册投稿\]/);
   assert.deepEqual(issue.labels, ['submission:pending']);
   assert.match(issue.body, /uem-submission-v2:/);
-  assert.match(issue.body, /@UEM-Feiyue\/career-reviewers/);
-  assert.match(issue.body, /待审核/);
+  assert.match(issue.body, /^\*\*方向：\*\* 就业/m);
+  assert.match(issue.body, /\n---\n\n\*\*已分配至：\*\* @UEM-Feiyue\/career-reviewers\n\n<!-- uem-submission-v2:/);
+  assert.doesNotMatch(issue.body, /飞跃手册经历投稿（待审核）|公开投稿，内容尚未经核实|\*\*审核组：\*\*/);
   assert.doesNotMatch(issue.body, /sample-token/);
 });
 test('fails closed before contacting external services', async () => {
