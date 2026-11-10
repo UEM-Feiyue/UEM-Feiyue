@@ -5,12 +5,16 @@ import os
 from pathlib import Path
 import re
 import sys
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
 
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = json.loads((ROOT / "data/schema.json").read_text(encoding="utf-8"))
-MARKER = re.compile(r"^<!-- uem-submission-v1:([A-Za-z0-9_-]+) -->$", re.M)
+MARKER = re.compile(r"^<!-- uem-submission-v2:([A-Za-z0-9_-]+):([A-Za-z0-9_-]+) -->$", re.M)
+SIGNING_CONTEXT = b"UEM-Feiyue:submission:v2:"
+TEAMS = {category["id"]: category["reviewTeam"] for category in SCHEMA["categories"]}
 ISSUE_PREFIX = "[飞跃手册投稿] "
 
 
@@ -35,17 +39,28 @@ def validate_record(value):
     return value
 
 
-def decode_issue(issue):
+def decode_issue(issue, private_key=None):
     if not isinstance(issue, dict) or not str(issue.get("title", "")).startswith(ISSUE_PREFIX):
         raise ValueError("Not a submission Issue")
     if not any(label.get("name") == "submission:pending" for label in issue.get("labels", [])):
         raise ValueError("Pending submission label is required")
     body = issue.get("body") or ""
     marks = MARKER.findall(body)
-    if len(marks) != 1 or len(marks[0]) > 86000:
+    if len(marks) != 1 or len(marks[0][0]) > 86000:
         raise ValueError("Expected exactly one valid submission marker")
-    encoded = marks[0]
+    encoded, signature = marks[0]
     raw = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4))
+    if base64.urlsafe_b64encode(raw).decode().rstrip("=") != encoded:
+        raise ValueError("Noncanonical submission encoding")
+    pem = private_key or os.getenv("UEM_APP_PRIVATE_KEY")
+    if not pem:
+        raise ValueError("Submission signature key is missing")
+    key = serialization.load_pem_private_key(pem.replace("\\n", "\n").encode(), password=None)
+    try:
+        key.public_key().verify(base64.urlsafe_b64decode(signature + "=" * (-len(signature) % 4)),
+                                SIGNING_CONTEXT + encoded.encode(), padding.PKCS1v15(), hashes.SHA256())
+    except Exception as exc:
+        raise ValueError("Invalid submission signature") from exc
     if len(raw) > 65536:
         raise ValueError("Submission record oversized")
     record = validate_record(json.loads(raw.decode("utf-8")))
@@ -59,17 +74,15 @@ def decode_issue(issue):
     return record
 
 
-def import_event(event, root=ROOT):
+def import_event(event, root=ROOT, private_key=None):
     if event.get("action") != "closed" or event.get("issue", {}).get("state_reason") != "completed":
         raise ValueError("Only completed closures are publishable")
-    if event.get("sender", {}).get("login") != "FuTseYi":
-        raise ValueError("Only the designated maintainer can approve")
     issue = event["issue"]
     if issue.get("pull_request") or not isinstance(issue.get("number"), int) or not (1 <= issue["number"] <= 9999999):
         raise ValueError("Invalid Issue")
     if event.get("repository", {}).get("full_name") != "UEM-Feiyue/UEM-Feiyue-Site-Source":
         raise ValueError("Wrong repository")
-    record = decode_issue(issue)
+    record = decode_issue(issue, private_key)
     target = root / "content" / "community" / ("issue-" + str(issue["number"]) + ".md")
     if target.exists():
         return target, False
