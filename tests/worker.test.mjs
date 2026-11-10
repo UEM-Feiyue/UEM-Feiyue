@@ -81,7 +81,7 @@ test('valid verified submission creates one pending Issue', async () => {
     });
     if (String(url).includes('access_tokens')) return Response.json({ token: 'installation-token' });
     return Response.json({
-      html_url: 'https://github.com/UEM-Feiyue/UEM-Feiyue-Site-Source/issues/57'
+      html_url: 'https://github.com/UEM-Feiyue/UEM-Feiyue/issues/57'
     }, { status: 201 });
   };
   try {

@@ -1,4 +1,4 @@
-# UEM-Feiyue-Site-Source
+# UEM-Feiyue
 
 由同学共同维护的应急管理大学考研、留学、就业和考公考编经历分享站。本仓库是唯一的源码与构建入口；生成的静态文件发布到 [UEM-Feiyue.github.io](https://github.com/UEM-Feiyue/UEM-Feiyue.github.io)，由 [GitHub Pages](https://uem-feiyue.github.io/) 托管。
 
@@ -14,7 +14,7 @@
 ## 项目结构
 
 ```text
-UEM-Feiyue-Site-Source/
+UEM-Feiyue/
 ├── .github/workflows/  # PR 验证、审核入库和跨仓库发布
 ├── assets/             # 样式、脚本和图片
 ├── content/            # 文章与社区投稿 Markdown
@@ -93,6 +93,6 @@ sequenceDiagram
 - [worker/README.md](worker/README.md)：Worker 部署与投稿安全配置
 - [PUBLISHED_README.md](PUBLISHED_README.md)：Published README 的唯一来源
 
-欢迎通过 [Issues](https://github.com/UEM-Feiyue/UEM-Feiyue-Site-Source/issues) 反馈资料问题，或通过 [Pull Requests](https://github.com/UEM-Feiyue/UEM-Feiyue-Site-Source/pulls) 参与共建。
+欢迎通过 [Issues](https://github.com/UEM-Feiyue/UEM-Feiyue/issues) 反馈资料问题，或通过 [Pull Requests](https://github.com/UEM-Feiyue/UEM-Feiyue/pulls) 参与共建。
 
 **Every line of code should justify its existence. Define once. Reuse everywhere.**

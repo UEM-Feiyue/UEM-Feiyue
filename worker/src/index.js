@@ -2,7 +2,7 @@
 import schema from '../../data/schema.json' with { type: 'json' };
 
 const ORIGINS = new Set(['https://uem-feiyue.github.io']);
-const REPOSITORY = 'UEM-Feiyue/UEM-Feiyue-Site-Source';
+const REPOSITORY = 'UEM-Feiyue/UEM-Feiyue';
 const MAX_BYTES = 65536;
 const CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/;
 const SIGNING_CONTEXT = 'UEM-Feiyue:submission:v2:';
@@ -35,7 +35,7 @@ async function installationToken(env, key) {
       Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28',
       'User-Agent': 'UEM-Feiyue-Submission'
     },
-    body: JSON.stringify({ repositories: ['UEM-Feiyue-Site-Source'], permissions: { issues: 'write' } }),
+    body: JSON.stringify({ repositories: ['UEM-Feiyue'], permissions: { issues: 'write' } }),
     signal: AbortSignal.timeout(10000)
   });
   if (!response.ok) throw Error('GitHub App token exchange failed: ' + response.status);

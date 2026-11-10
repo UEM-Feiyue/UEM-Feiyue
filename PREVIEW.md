@@ -20,8 +20,8 @@ Windows 使用 `py -3` 替代 `python`；Worker 测试需要 Node.js 22+。预�
 
 ## 发布与权限
 
-Source 的 `deploy.yml` 在 `main` Push 后测试、构建 `_site/`，并用安装于 Source 和 Published 的 `UEM Feiyue Site Automation` App 将变化后的产物推送到 Published `main`。Source Actions 保存 Variable `PUBLISH_APP_ID` 与 Secret `PUBLISH_APP_PRIVATE_KEY`；缺少凭据会使发布失败，不会静默跳过。Published 的 Pages 从 `main` 根目录部署。通过 Published 的 `build-info.json` 核对源码提交和构建运行；产物未变化时不会生成新提交。
+Source 的 `deploy.yml` 在 `main` Push 后测试、构建 `_site/`，并用安装于 Source 和 Published 的 `UEM Feiyue Automation` App 将变化后的产物推送到 Published `main`。Source Actions 保存 Variable `PUBLISH_APP_ID` 与 Secret `PUBLISH_APP_PRIVATE_KEY`；缺少凭据会使发布失败，不会静默跳过。Published 的 Pages 从 `main` 根目录部署。通过 Published 的 `build-info.json` 核对源码提交和构建运行；产物未变化时不会生成新提交。
 
-投稿 Worker 使用 UEM Feiyue Site Automation App 的 Source 范围短期 Issues token 创建 Source Issue，不使用个人令牌。它的生产开关位于 Cloudflare，见 `worker/README.md`。对应方向的审核 Team 成员或组织 Owner 以 Close as completed 审核有效投稿时，Source 的 `publish-completed-submission.yml` 验证 App 创建者、签名数据和审核身份，再用 App 提交 Markdown；Source Push 随后触发静态发布。Close as not planned 只清除待审标签，不生成内容。对真实投稿执行 completed 审核前应核对公开正文与联系信息。
+投稿 Worker 使用 UEM Feiyue Automation App 的 Source 范围短期 Issues token 创建 Source Issue，不使用个人令牌。它的生产开关位于 Cloudflare，见 `worker/README.md`。对应方向的审核 Team 成员或组织 Owner 以 Close as completed 审核有效投稿时，Source 的 `publish-completed-submission.yml` 验证 App 创建者、签名数据和审核身份，再用 App 提交 Markdown；Source Push 随后触发静态发布。Close as not planned 只清除待审标签，不生成内容。对真实投稿执行 completed 审核前应核对公开正文与联系信息。
 
 不要把 App 私钥、Worker 凭据或 Turnstile 密钥提交进仓库。若旧 Published 中仍有待审核投稿，应先处理或迁移其审核记录，避免丢失待办。

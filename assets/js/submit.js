@@ -403,7 +403,7 @@
             body: JSON.stringify(payload)
           });
           const result = await response.json();
-          if (!response.ok || !result.ok || !/^https:\/\/github\.com\/UEM-Feiyue\/UEM-Feiyue-Site-Source\/issues\/\d+$/.test(result.issueUrl || ''))
+          if (!response.ok || !result.ok || !/^https:\/\/github\.com\/UEM-Feiyue\/UEM-Feiyue\/issues\/\d+$/.test(result.issueUrl || ''))
             throw new Error(result.message || '投稿未成功，请稍后再试。');
           form.reset();
           submitStatus.dataset.state = 'success';

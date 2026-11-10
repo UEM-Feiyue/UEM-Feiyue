@@ -29,7 +29,7 @@ def fixture():
              "state_reason": "completed", "labels": [{"name": "submission:pending"}],
              "body": "### 经历\n\n<!-- uem-submission-v2:" + payload + ":" + signed + " -->"}
     return {"action": "closed", "sender": {"login": "FuTseYi"},
-            "repository": {"full_name": "UEM-Feiyue/UEM-Feiyue-Site-Source"}, "issue": issue}
+            "repository": {"full_name": "UEM-Feiyue/UEM-Feiyue"}, "issue": issue}
 
 
 class PublicationTests(unittest.TestCase):

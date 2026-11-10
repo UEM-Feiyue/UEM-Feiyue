@@ -1,6 +1,6 @@
 # Engineering principles
 
-Source (`UEM-Feiyue/UEM-Feiyue-Site-Source`) owns code, content, workflows, and build logic. Published (`UEM-Feiyue/UEM-Feiyue.github.io`) contains generated static output only; never edit it directly. `PUBLISHED_README.md` supplies its README. Do not commit `_site/` to Source. See `README.md` for the publishing topology and `PREVIEW.md` for operating steps.
+Source (`UEM-Feiyue/UEM-Feiyue`) owns code, content, workflows, and build logic. Published (`UEM-Feiyue/UEM-Feiyue.github.io`) contains generated static output only; never edit it directly. `PUBLISHED_README.md` supplies its README. Do not commit `_site/` to Source. See `README.md` for the publishing topology and `PREVIEW.md` for operating steps.
 
 1. Every line of code should justify its existence. Define once; reuse everywhere.
 2. Keep the site static and accessible. Prefer HTML/CSS/vanilla JS. Add dependencies only when a real requirement justifies them.
