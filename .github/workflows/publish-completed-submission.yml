@@ -1,27 +1,22 @@
-name: Publish completed UEM submissions
-
+name: Review and publish UEM submissions
 on:
   issues:
-    types: [closed]
-
+    types: [opened, closed, reopened]
 permissions:
   contents: read
-  issues: write
-
+  issues: read
 concurrency:
   group: uem-submission-publication
   cancel-in-progress: false
-
 jobs:
-  publish:
-    if: ${{ !github.event.issue.pull_request && startsWith(github.event.issue.title, '[飞跃手册投稿] ') && github.event.issue.state_reason == 'completed' && github.event.sender.login == 'FuTseYi' }}
+  review:
+    if: ${{ !github.event.issue.pull_request && startsWith(github.event.issue.title, '[飞跃手册投稿] ') }}
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
     steps:
-      - name: Create source update token
+      - name: Create Source App token
         id: app
         uses: actions/create-github-app-token@v2
         with:
@@ -30,17 +25,67 @@ jobs:
           owner: UEM-Feiyue
           repositories: UEM-Feiyue-Site-Source
           permission-contents: write
+          permission-issues: write
+          permission-members: read
+      - name: Check Issue creator
+        env:
+          ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
+          APP_SLUG: ${{ steps.app.outputs.app-slug }}
+        run: test "${ISSUE_AUTHOR,,}" = "${APP_SLUG,,}[bot]"
       - uses: actions/checkout@v4
         with:
           ref: main
-          token: ${{ steps.app.outputs.token }}
-          fetch-depth: 0
-          persist-credentials: true
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - run: python -m pip install -r requirements.txt
+      - name: Verify signature and team
+        id: route
+        env:
+          UEM_APP_PRIVATE_KEY: ${{ secrets.PUBLISH_APP_PRIVATE_KEY }}
+        run: python scripts/review_submission.py
+      - name: Route to team
+        if: ${{ github.event.action == 'opened' }}
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: gh issue edit "$ISSUE_NUMBER" --add-label submission:pending
+      - name: Check reviewer
+        if: ${{ github.event.action == 'closed' && github.event.issue.state_reason == 'completed' }}
+        id: authorization
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          REVIEW_TEAM: ${{ steps.route.outputs.team }}
+          CLOSING_USER: ${{ github.event.sender.login }}
+        run: |
+          authorized=false
+          role=$(gh api "/orgs/UEM-Feiyue/memberships/${CLOSING_USER}" --jq .role 2>/dev/null || true)
+          if [[ "$role" == admin ]]; then
+            authorized=true
+          else
+            member=$(gh api "/orgs/UEM-Feiyue/teams/${REVIEW_TEAM}/memberships/${CLOSING_USER}" --jq .state 2>/dev/null || true)
+            if [[ "$member" == active ]]; then authorized=true; fi
+          fi
+          echo "authorized=$authorized" >> "$GITHUB_OUTPUT"
+      - name: Reject unauthorized closure
+        if: ${{ github.event.action == 'closed' && github.event.issue.state_reason == 'completed' && steps.authorization.outputs.authorized != 'true' }}
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          gh issue reopen "$ISSUE_NUMBER"
+          gh issue comment "$ISSUE_NUMBER" --body "只有对应审核 Team 成员或组织 Owner 可以批准收录。"
+      - name: Checkout for import
+        if: ${{ github.event.action == 'closed' && github.event.issue.state_reason == 'completed' && steps.authorization.outputs.authorized == 'true' }}
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ steps.app.outputs.token }}
       - name: Import reviewed Issue
+        if: ${{ github.event.action == 'closed' && github.event.issue.state_reason == 'completed' && steps.authorization.outputs.authorized == 'true' }}
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          UEM_APP_PRIVATE_KEY: ${{ secrets.PUBLISH_APP_PRIVATE_KEY }}
         run: |
           set -euo pipefail
           git config user.name '${{ steps.app.outputs.app-slug }}[bot]'
@@ -50,10 +95,7 @@ jobs:
             git checkout -B publication origin/main
             python scripts/import_completed_submission.py
             git add -A -- content/community/
-            if git diff --cached --quiet; then
-              echo 'Already published'
-              exit 0
-            fi
+            if git diff --cached --quiet; then exit 0; fi
             git diff --cached --name-only | grep -Ex 'content/community/issue-[0-9]+\.md' >/dev/null
             python -m unittest discover -s tests -t . -p 'test_*.py'
             python preview.py --build-only
@@ -64,17 +106,18 @@ jobs:
             fi
           done
           exit 1
-      - name: Mark publication failure
-        if: ${{ failure() }}
-        run: gh issue edit "$ISSUE_NUMBER" --add-label submission:failed
-
-  dismiss:
-    if: ${{ !github.event.issue.pull_request && startsWith(github.event.issue.title, '[飞跃手册投稿] ') && github.event.issue.state_reason != 'completed' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Clear pending review status
+      - name: Dismiss or reopen
+        if: ${{ github.event.action == 'reopened' || (github.event.action == 'closed' && github.event.issue.state_reason != 'completed') }}
         env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-        run: gh issue edit "$ISSUE_NUMBER" --remove-label submission:pending
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          if [[ '${{ github.event.action }}' == reopened ]]; then
+            gh issue edit "$ISSUE_NUMBER" --add-label submission:pending --remove-label submission:failed
+          else
+            gh issue edit "$ISSUE_NUMBER" --remove-label submission:pending
+          fi
+      - name: Mark publication failure
+        if: ${{ failure() && github.event.action == 'closed' && steps.authorization.outputs.authorized == 'true' }}
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: gh issue edit "$ISSUE_NUMBER" --add-label submission:failed

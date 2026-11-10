@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { generateKeyPairSync, webcrypto } from 'node:crypto';
 import worker, { validate, issueFor } from '../worker/src/index.js';
+
+const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+const privatePem = privateKey.export({ type: 'pkcs8', format: 'pem' });
+const signingKey = await webcrypto.subtle.importKey('pkcs8', privateKey.export({ type: 'pkcs8', format: 'der' }),
+  { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
+const appEnv = { GITHUB_APP_ID: '5666636', GITHUB_APP_INSTALLATION_ID: '1234', GITHUB_APP_PRIVATE_KEY: privatePem };
 
 const valid = {
   version: 1, category: 'career', author: '张同学', year: '2026',
@@ -26,11 +33,12 @@ test('validates with the canonical schema', () => {
   assert.equal(validate({ ...valid, contact: 'x'.repeat(501) }), null);
   assert.equal(validate({ ...valid, author: 123 }), null);
 });
-test('renders a public, reviewable Issue', () => {
-  const issue = issueFor(validate(valid));
+test('renders a signed, reviewable Issue', async () => {
+  const issue = await issueFor(validate(valid), signingKey);
   assert.match(issue.title, /^\[飞跃手册投稿\]/);
   assert.deepEqual(issue.labels, ['submission:pending']);
-  assert.match(issue.body, /uem-submission-v1:/);
+  assert.match(issue.body, /uem-submission-v2:/);
+  assert.match(issue.body, /@UEM-Feiyue\/career-reviewers/);
   assert.match(issue.body, /待审核/);
   assert.doesNotMatch(issue.body, /sample-token/);
 });
@@ -53,7 +61,7 @@ test('rejects malformed submissions before Turnstile or GitHub', async () => {
   try {
     const env = {
       SUBMISSION_MODE: 'public', SUBMISSIONS_DISABLED: 'false',
-      GITHUB_TOKEN: 'dummy', TURNSTILE_SECRET: 'dummy',
+      ...appEnv, TURNSTILE_SECRET: 'dummy',
       SUBMISSION_LIMITER: { limit: async () => ({ success: true }) }
     };
     const response = await worker.fetch(request({ ...valid, category: 'fake' }), env);
@@ -70,6 +78,7 @@ test('valid verified submission creates one pending Issue', async () => {
     if (String(url).includes('turnstile')) return Response.json({
       success: true, hostname: 'uem-feiyue.github.io', action: 'uem_feiyue_submit'
     });
+    if (String(url).includes('access_tokens')) return Response.json({ token: 'installation-token' });
     return Response.json({
       html_url: 'https://github.com/UEM-Feiyue/UEM-Feiyue-Site-Source/issues/57'
     }, { status: 201 });
@@ -77,16 +86,18 @@ test('valid verified submission creates one pending Issue', async () => {
   try {
     const env = {
       SUBMISSIONS_DISABLED: 'false', SUBMISSION_MODE: 'public',
-      GITHUB_TOKEN: 'test-only', TURNSTILE_SECRET: 'test-only',
+      ...appEnv, TURNSTILE_SECRET: 'test-only',
       SUBMISSION_LIMITER: { limit: async () => ({ success: true }) }
     };
     const response = await worker.fetch(request(), env);
     assert.equal(response.status, 201);
     assert.equal((await response.json()).ok, true);
-    assert.equal(calls.length, 2);
-    const body = JSON.parse(calls[1].options.body);
+    assert.equal(calls.length, 3);
+    assert.deepEqual(JSON.parse(calls[1].options.body).permissions, { issues: 'write' });
+    assert.equal(calls[2].options.headers.Authorization, 'Bearer installation-token');
+    const body = JSON.parse(calls[2].options.body);
     assert.deepEqual(body.labels, ['submission:pending']);
-    assert.match(body.body, /uem-submission-v1:/);
+    assert.match(body.body, /uem-submission-v2:/);
     assert.doesNotMatch(body.body, /sample-token/);
   } finally { globalThis.fetch = originalFetch; }
 });
@@ -100,7 +111,7 @@ test('rejects verification for another origin or action', async () => {
   try {
     const env = {
       SUBMISSIONS_DISABLED: 'false', SUBMISSION_MODE: 'public',
-      GITHUB_TOKEN: 'test-only', TURNSTILE_SECRET: 'test-only',
+      ...appEnv, TURNSTILE_SECRET: 'test-only',
       SUBMISSION_LIMITER: { limit: async () => ({ success: true }) }
     };
     const response = await worker.fetch(request(), env);
