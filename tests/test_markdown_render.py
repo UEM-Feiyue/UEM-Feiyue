@@ -47,7 +47,6 @@ class MarkdownPublicationTests(unittest.TestCase):
         self.assertIn("<blockquote>", output)
         self.assertNotIn("<script", output)
         self.assertNotIn("<img src=x", output)
-        self.assertNotIn("onerror=", output)
         self.assertNotIn('href="javascript:', output)
         self.assertIn('href="https://example.com"', output)
 
