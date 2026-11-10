@@ -510,6 +510,19 @@ def main():
             assert appearance("#preview-text .article-body") == expected["body"]
             assert appearance("#preview-text .article-body h2") == expected["h2"]
             assert appearance("#preview-text > h1") == expected["title_style"]
+            # Blockquotes are structural Markdown, not a literal leading '>'.
+            # Both the inline editor and the full article preview must render them.
+            quoted = ("> 本文仅用于系统测试，不代表真实录取。\\n\\n"
+                      "## 一、前期准备\\n\\n1. 基础\\n2. 强化\\n\\n"
+                      "**测试标记：UEM-QA-POSTGRAD-001**").replace("\\\\n", "\\n")
+            page.locator("#body").fill(quoted)
+            page.locator("#preview-button").click()
+            quote = page.locator("#preview-text .article-body blockquote")
+            assert quote.count() == 1
+            assert quote.inner_text() == "本文仅用于系统测试，不代表真实录取。"
+            assert quote.evaluate("el => getComputedStyle(el).borderLeftStyle") == "solid"
+            page.locator(".markdown-preview-toggle").click()
+            assert page.locator(".markdown-preview blockquote").count() == 1
             context.close()
             # A phrase found only in the article body must be searchable.
             context = browser.new_context()
