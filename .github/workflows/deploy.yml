@@ -53,6 +53,12 @@ jobs:
           owner: UEM-Feiyue
           repositories: UEM-Feiyue.github.io
           permission-contents: write
+      - name: Resolve publishing bot identity
+        id: bot
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          APP_SLUG: ${{ steps.app.outputs.app-slug }}
+        run: echo "id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
       - name: Check out Published
         uses: actions/checkout@v4
         with:
@@ -70,7 +76,7 @@ jobs:
           rsync -a --delete --exclude='.git/' _site/ published/
           cd published
           git config user.name '${{ steps.app.outputs.app-slug }}[bot]'
-          git config user.email '${{ steps.app.outputs.app-slug }}[bot]@users.noreply.github.com'
+          git config user.email '${{ steps.bot.outputs.id }}+${{ steps.app.outputs.app-slug }}[bot]@users.noreply.github.com'
           git add -A
           git commit -m "Publish source ${SOURCE_SHA}"
           git push origin HEAD:main
