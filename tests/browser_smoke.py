@@ -51,7 +51,8 @@ def main():
                     page.on("pageerror", lambda error: errors.append(str(error)))
                     page.goto(base + PREFIX + "/", wait_until="networkidle")
                     assert page.locator("h1:visible").count() == 1
-                    assert page.locator(".article-item .article-meta").first.inner_text().endswith("某学院 · 某专业")
+                    first_meta = page.locator(".article-item .article-meta").first.inner_text()
+                    assert first_meta.endswith(articles[0]["college"] + " · " + articles[0]["major"])
                     assert page.locator(".article-item h3").first.inner_text().startswith(articles[0]["author"] + " — ")
                     assert page.locator(".article-item").first.evaluate("el => el.querySelector('h3').compareDocumentPosition(el.querySelector('.article-meta')) & Node.DOCUMENT_POSITION_FOLLOWING")
                     # A bounded image banner retains aspect ratio at desktop/mobile sizes.
