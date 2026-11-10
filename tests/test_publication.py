@@ -38,6 +38,9 @@ class PublicationTests(unittest.TestCase):
         event = fixture()
         record = module.decode_issue(event["issue"], PEM)
         self.assertEqual(record["version"], 1)
+        legacy_without_tier = dict(record)
+        legacy_without_tier.pop("institution_type")
+        self.assertEqual(module.validate_record(legacy_without_tier)["version"], 1)
         record.pop("institution_type")
         record.update(version=2, category="kaoyan", destination="北京理工大学", institution_id="bit",
                       admission_year="2026", degree_type="academic", admission_method="exam")

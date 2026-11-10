@@ -20,16 +20,18 @@ ISSUE_PREFIX = "[飞跃手册投稿] "
 
 
 def validate_record(value):
-    if not isinstance(value, dict) or value.get("version") not in (1, SCHEMA["version"]):
+    if not isinstance(value, dict) or value.get("version") not in (SCHEMA["legacy"]["version"], SCHEMA["version"]):
         raise ValueError("Unknown submission version")
     if value.get("category") not in {x["id"] for x in SCHEMA["categories"]}:
         raise ValueError("Invalid category")
     fields = SCHEMA["fields"] if value["version"] == SCHEMA["version"] else [
-        *[dict(field, required=False) if field["name"] == "program" else field for field in SCHEMA["fields"] if field["name"] not in {"institution_id", "admission_year", "degree_type", "admission_method"}],
-        {"name": "institution_type", "category": "kaoyan", "options": [{"value": x} for x in ("985", "211", "other")]},
+        *[dict(field, required=False) if field["name"] in SCHEMA["legacy"]["optional"] else field
+          for field in SCHEMA["fields"] if field["name"] in SCHEMA["legacy"]["fields"]],
+        {"name": "institution_type", "category": SCHEMA["legacy"]["institution_type"]["category"],
+         "options": [{"value": x} for x in SCHEMA["legacy"]["institution_type"]["options"]]},
     ]
     allowed = {"version", "category"} | {x["name"] for x in fields}
-    if set(value) != allowed and not (value["version"] == 1 and set(value) == allowed - {"institution_type"}):
+    if set(value) != allowed and not (value["version"] == SCHEMA["legacy"]["version"] and set(value) == allowed - {"institution_type"}):
         raise ValueError("Unexpected or missing fields")
     for field in fields:
         item = value.get(field["name"], "")

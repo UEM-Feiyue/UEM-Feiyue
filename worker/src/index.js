@@ -92,24 +92,33 @@ async function readJSON(request) {
 
 function validate(payload) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
-  if (payload.version !== schema.version || !schema.categories.some(({ id }) => id === payload.category))
+  const legacy = payload.version === schema.legacy.version;
+  if ((!legacy && payload.version !== schema.version) || !schema.categories.some(({ id }) => id === payload.category))
     return null;
-  if (Object.keys(payload).some(key => !['version', 'category', 'turnstileToken', ...schema.fields.map(field => field.name)].includes(key))) return null;
+  const fields = legacy ? schema.fields.filter(field => schema.legacy.fields.includes(field.name)) : schema.fields;
+  const allowed = ['version', 'category', 'turnstileToken', ...fields.map(field => field.name), ...(legacy ? ['institution_type'] : [])];
+  if (Object.keys(payload).some(key => !allowed.includes(key))) return null;
   if (typeof payload.turnstileToken !== 'string' ||
       payload.turnstileToken.length < 1 || payload.turnstileToken.length > 2048) return null;
-  const record = { version: schema.version, category: payload.category };
-  for (const field of schema.fields) {
+  const record = { version: payload.version, category: payload.category };
+  for (const field of fields) {
     const value = payload[field.name] ?? '';
     if (typeof value !== 'string' || CONTROL.test(value)) return null;
     const clean = value.trim();
     if (clean && field.category && field.category !== payload.category) return null;
     if (clean && field.options && !field.options.some(option => option.value === clean)) return null;
-    if (field.required && (!field.category || field.category === payload.category) && !clean) return null;
+    if (field.required && !(legacy && schema.legacy.optional.includes(field.name)) && (!field.category || field.category === payload.category) && !clean) return null;
     if (field.maxLength && clean.length > field.maxLength) return null;
     if (field.pattern && clean && !(new RegExp('^(?:' + field.pattern + ')$')).test(clean)) return null;
     record[field.name] = clean;
   }
-  if (record.institution_id) {
+  if (legacy && Object.hasOwn(payload, 'institution_type')) {
+    const type = payload.institution_type;
+    if (typeof type !== 'string' || CONTROL.test(type) ||
+        (type && (payload.category !== schema.legacy.institution_type.category || !schema.legacy.institution_type.options.includes(type)))) return null;
+    record.institution_type = type;
+  }
+  if (!legacy && record.institution_id) {
     const institution = directory.institutions.find(item => item.id === record.institution_id);
     if (!institution || institution.name !== record.destination) return null;
   }

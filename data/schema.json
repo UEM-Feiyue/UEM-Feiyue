@@ -1,6 +1,14 @@
 {
   "version": 2,
-  "legacyVersions": [1],
+  "legacy": {
+    "version": 1,
+    "fields": ["author", "year", "college", "major", "destination", "program", "body", "contact"],
+    "optional": ["program"],
+    "institution_type": {
+      "category": "kaoyan",
+      "options": ["985", "211", "other"]
+    }
+  },
   "categories": [
     {
       "id": "kaoyan",

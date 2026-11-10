@@ -57,6 +57,13 @@ test('requires program everywhere and admission details only for postgraduate su
   for (const key of ['admission_year', 'degree_type', 'admission_method']) assert.equal(validate({ ...admission, [key]: '' }), null);
   assert.equal(validate({ ...valid, institution_type: '985' }), null);
 });
+test('keeps legacy site submissions valid during rollout', async () => {
+  const old = { ...valid, version: 1, category: 'kaoyan', program: '' };
+  assert.equal(validate(old).version, 1);
+  assert.equal(validate(old).program, '');
+  assert.match((await issueFor(validate(old), signingKey)).body, /uem-submission-v2:/);
+  assert.equal(validate({ ...old, admission_year: '2026' }), null);
+});
 test('fails closed before contacting external services', async () => {
   let contacted = false;
   const oldFetch = globalThis.fetch;
