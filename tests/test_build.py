@@ -146,7 +146,7 @@ class SubmissionBuildTests(unittest.TestCase):
         self.assertNotIn("<script>alert(1)</script>", page)
 
     def test_schema_required_fields_and_limits_are_enforced_before_publication(self):
-        meta = {"category": "career", "author": "Test author", "year": "2026", "college": "Example college", "major": "Example major", "destination": "Example", "program": "Example program"}
+        meta = {"schema_version": 2, "category": "career", "author": "Test author", "year": "2026", "college": "Example college", "major": "Example major", "destination": "Example", "program": "Example program"}
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "test.md"
             for field in build.SCHEMA["fields"]:

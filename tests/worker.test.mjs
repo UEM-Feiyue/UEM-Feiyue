@@ -10,7 +10,7 @@ const signingKey = await webcrypto.subtle.importKey('pkcs8', privateKey.export({
 const appEnv = { GITHUB_APP_ID: '5666636', GITHUB_APP_INSTALLATION_ID: '1234', GITHUB_APP_PRIVATE_KEY: privatePem };
 
 const valid = {
-  version: 1, category: 'career', author: '张同学', year: '2026',
+  version: 2, category: 'career', author: '张同学', year: '2026',
   college: '某学院', major: '软件工程',
   destination: '某科技公司', program: '软件工程师',
   body: '我准备了项目经历和面试。', contact: '', turnstileToken: 'sample-token'
@@ -43,18 +43,19 @@ test('renders a signed, reviewable Issue', async () => {
   assert.doesNotMatch(issue.body, /飞跃手册经历投稿（待审核）|公开投稿，内容尚未经核实|\*\*审核组：\*\*/);
   assert.doesNotMatch(issue.body, /sample-token/);
 });
-test('requires program everywhere and institution type only for postgraduate submissions', async () => {
+test('requires program everywhere and admission details only for postgraduate submissions', async () => {
   for (const category of ['kaoyan', 'overseas', 'career', 'public']) {
-    assert.equal(validate({ ...valid, category, institution_type: category === 'kaoyan' ? '985' : '', program: '' }), null);
+    assert.equal(validate({ ...valid, category, program: '' }), null);
   }
   assert.equal(validate({ ...valid, category: 'kaoyan' }), null);
+  const admission = { ...valid, category: 'kaoyan', destination: '北京理工大学', institution_id: 'bit', admission_year: '2026', degree_type: 'academic', admission_method: 'exam' };
+  assert.equal(validate(admission).institution_id, 'bit');
+  assert.match((await issueFor(validate(admission), signingKey)).body, /录取年份/);
+  assert.equal(validate({ ...admission, institution_id: 'missing' }), null);
+  assert.equal(validate({ ...admission, destination: '其他单位' }), null);
+  assert.equal(validate({ ...admission, destination: '未收录单位', institution_id: '' }).institution_id, '');
+  for (const key of ['admission_year', 'degree_type', 'admission_method']) assert.equal(validate({ ...admission, [key]: '' }), null);
   assert.equal(validate({ ...valid, institution_type: '985' }), null);
-  assert.equal(validate({ ...valid, category: 'kaoyan', institution_type: 'fake' }), null);
-  for (const institution_type of ['985', '211', 'other']) {
-    const record = validate({ ...valid, category: 'kaoyan', institution_type });
-    assert.equal(record.institution_type, institution_type);
-    assert.match((await issueFor(record, signingKey)).body, /录取院校层次/);
-  }
 });
 test('fails closed before contacting external services', async () => {
   let contacted = false;

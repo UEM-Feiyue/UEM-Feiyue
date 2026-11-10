@@ -33,28 +33,28 @@ def fixture():
 
 
 class PublicationTests(unittest.TestCase):
-    def test_required_school_field_and_signed_publication(self):
+    def test_versioned_admission_and_signed_publication(self):
         from scripts import build
         event = fixture()
         record = module.decode_issue(event["issue"], PEM)
-        for edit in ({"program": ""}, {"category": "kaoyan"}, {"institution_type": "985"}):
+        self.assertEqual(record["version"], 1)
+        record.pop("institution_type")
+        record.update(version=2, category="kaoyan", destination="北京理工大学", institution_id="bit",
+                      admission_year="2026", degree_type="academic", admission_method="exam")
+        self.assertEqual(module.validate_record(record)["institution_id"], "bit")
+        for edit in ({"program": ""}, {"admission_year": ""}, {"institution_id": "missing"}):
             with self.subTest(edit=edit), self.assertRaises(ValueError):
                 module.validate_record(dict(record, **edit))
-        incomplete = dict(record)
-        incomplete.pop("institution_type")
-        with self.assertRaises(ValueError):
-            module.validate_record(incomplete)
-        record.update(category="kaoyan", institution_type="985")
         encoded = base64.urlsafe_b64encode(json.dumps(record).encode()).decode().rstrip("=")
         signature = KEY.sign(module.SIGNING_CONTEXT + encoded.encode(), padding.PKCS1v15(), hashes.SHA256())
         signed = base64.urlsafe_b64encode(signature).decode().rstrip("=")
         event["issue"]["body"] = "<!-- uem-submission-v2:" + encoded + ":" + signed + " -->"
-        event["issue"]["title"] = event["issue"]["title"].replace("[就业]", "[考研]")
+        event["issue"]["title"] = "[飞跃手册投稿] [考研] 张同学 — 北京理工大学 · 产品经理"
         with tempfile.TemporaryDirectory() as directory:
             path, _ = module.import_event(event, Path(directory), PEM)
             meta, body = build.parse(path)
-            self.assertEqual(meta["institution_type"], "985")
-            self.assertIn("985 院校</p>", build.render(meta, body, "articles/test.html"))
+            self.assertEqual(meta["institution_id"], "bit")
+            self.assertIn("双一流 · 自划线", build.render(meta, body, "articles/test.html"))
 
     def test_reviewed_commit_triggers_source_publication(self):
         workflow = (ROOT / '.github/workflows/publish-completed-submission.yml').read_text(encoding='utf-8')

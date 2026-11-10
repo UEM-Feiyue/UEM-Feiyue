@@ -5,12 +5,16 @@
 ```yaml
 ---
 category: kaoyan
+schema_version: 2
 author: 昵称
 year: "2026"
 college: 学院
 major: 专业
 destination: 最终去向
-institution_type: "985" # 考研必填：985、211（非985）或 other
+institution_id: bit # 可空；仅引用 data/institutions.json 中已核实的 ID
+admission_year: "2026"
+degree_type: academic # academic / professional / other
+admission_method: exam # exam / recommendation / independent / other
 program: 专业、项目或岗位（必填）
 contact: 邮箱或社交账号（可选，公开展示）
 excerpt: 一句话摘要（可选）
@@ -21,6 +25,8 @@ tags:
 ```
 
 `category` 必须是 `data/schema.json` 中定义的分类之一。不要提交未经当事人许可的个人信息。文章标题自动使用「去向 · 专业/项目/岗位」生成，署名另显示「昵称 · 毕业届次 · 学院 · 专业」，无须单独填写标题；正文从 Markdown 文件本体读取。文章中不接受直接嵌入的 HTML。
+
+考研以外的文章不填写录取年份、学位类型、录取方式或招生单位 ID。未收录的考研招生单位保留 `destination`，将 `institution_id` 留空，审核时再核实目录。历史文章和已签名的 version 1 Issue 仍按旧协议读取；新投稿使用 version 2。招生单位标签从目录中的独立属性生成，不在文章中手动维护院校层次。
 
 ## 演示文章
 

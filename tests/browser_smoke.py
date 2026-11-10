@@ -51,7 +51,7 @@ def main():
                     page.on("pageerror", lambda error: errors.append(str(error)))
                     page.goto(base + PREFIX + "/", wait_until="networkidle")
                     assert page.locator("h1:visible").count() == 1
-                    assert page.locator('.article-item[data-category="kaoyan"] .article-meta').evaluate_all("items => items.every(item => item.textContent.includes('985 院校'))")
+                    assert page.locator('.article-item[data-category="kaoyan"] .article-meta').evaluate_all("items => items.every(item => item.textContent.includes('2026'))")
                     first_meta = page.locator(".article-item .article-meta").first.inner_text()
                     assert articles[0]["college"] + " · " + articles[0]["major"] in first_meta
                     assert page.locator(".article-item h3").first.inner_text().startswith(articles[0]["author"] + " — ")
@@ -352,22 +352,24 @@ def main():
                     page.locator("#year").fill("abcd")
                     assert not page.locator("#year").evaluate("el => el.checkValidity()")
                     page.locator("#year").fill("2026")
-                    assert page.locator('#institution_type').evaluate('el => el.required && !el.checkValidity()')
-                    assert page.locator('#institution_type option').count() == 3
-                    assert '请选择录取院校层次' not in page.locator('#institution_type').inner_text()
-                    page.locator('#institution_type').select_option('985')
+                    assert page.locator('#admission_year').evaluate('el => el.required && !el.checkValidity()')
                     page.locator('#category').select_option('career')
-                    assert page.locator('#institution_type').is_hidden()
-                    assert page.locator('#institution_type').input_value() == ''
-                    assert not page.locator('#institution_type').evaluate('el => el.required')
+                    assert page.locator('#admission_year').is_hidden()
+                    assert not page.locator('#admission_year').evaluate('el => el.required')
                     page.locator('#category').select_option('kaoyan')
-                    page.locator('#institution_type').select_option('211')
+                    page.locator('#admission_year').fill('2026')
+                    page.locator('#degree_type').select_option('academic')
+                    page.locator('#admission_method').select_option('exam')
                     assert page.locator(".education-fields legend").inner_text() == "在校信息"
                     assert not page.locator("#college").evaluate("el => el.checkValidity()")
                     page.locator("#college").fill("某学院")
                     assert not page.locator("#major").evaluate("el => el.checkValidity()")
                     page.locator("#major").fill("某专业")
                     page.locator("#destination").fill("Example institution")
+                    page.locator("#destination").fill("北京理工大学")
+                    assert page.locator("#institution_id").input_value() == "bit"
+                    page.locator("#destination").fill("Example institution")
+                    assert page.locator("#institution_id").input_value() == ""
                     assert page.locator('#program').evaluate('el => el.required && !el.checkValidity()')
                     page.locator('#program').fill('测试专业')
                     assert page.locator("#year").evaluate("el => el.getBoundingClientRect().width < 120")
@@ -389,7 +391,7 @@ def main():
                     page.locator("#contact").fill("do-not-save@example.invalid")
                     page.locator("#preview-button").click()
                     assert page.locator("#preview").is_visible()
-                    assert '211 院校（非985）' in page.locator('#preview .article-byline').inner_text()
+                    assert 'Browser test' in page.locator('#preview .article-byline').inner_text()
                     assert page.locator("#preview .article-body strong").count() == 1, page.locator("#preview-text").inner_html()
                     assert page.locator("#preview .article-body strong").inner_text() == "Test body"
                     assert not page.evaluate("Boolean(window.__unsafe)")
@@ -403,7 +405,7 @@ def main():
                     page.reload(wait_until="networkidle")
                     page.wait_for_selector("#body")
                     assert page.locator("#author").input_value() == "Browser test"
-                    assert page.locator('#institution_type').input_value() == '211'
+                    assert page.locator('#admission_year').input_value() == '2026'
                     assert page.locator("#contact").input_value() == ""
                     assert page.locator("#body").evaluate("el => el.scrollHeight <= el.clientHeight + 3")
                     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 2")
@@ -518,7 +520,9 @@ def main():
             page.locator("#major").fill("某专业")
             page.locator("#destination").fill("某理工类高校")
             page.locator("#program").fill("安全工程相关专业")
-            page.locator("#institution_type").select_option("985")
+            page.locator("#admission_year").fill("2026")
+            page.locator("#degree_type").select_option("academic")
+            page.locator("#admission_method").select_option("exam")
             page.locator("#body").fill(demo_body)
             page.locator("#preview-button").click()
             assert page.locator("#preview").is_visible()
@@ -610,7 +614,9 @@ def main():
             page.goto(base + "/submit.html", wait_until="networkidle")
             page.wait_for_selector("#body")
             page.locator("#category").select_option("kaoyan")
-            page.locator("#institution_type").select_option("985")
+            page.locator("#admission_year").fill("2026")
+            page.locator("#degree_type").select_option("academic")
+            page.locator("#admission_method").select_option("exam")
             page.locator("#author").fill("测试同学")
             page.locator("#year").fill("2026")
             page.locator("#college").fill("某学院")
@@ -625,7 +631,8 @@ def main():
             assert page.locator("#submit-button").inner_text() == "投稿分享"
             assert len(submissions) == 1
             assert submissions[0]["category"] == "kaoyan"
-            assert submissions[0]["institution_type"] == "985"
+            assert submissions[0]["admission_year"] == "2026"
+            assert submissions[0]["institution_id"] == ""
             assert submissions[0]["program"] == "测试专业"
             assert submissions[0]["college"] == "某学院"
             assert submissions[0]["major"] == "某专业"
