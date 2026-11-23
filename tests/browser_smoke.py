@@ -548,18 +548,21 @@ def main():
             page.goto(base + "/?view=all", wait_until="networkidle")
             page.locator(".search-open").click()
             page.locator("#search").fill("理工")
-            page.wait_for_function("document.querySelectorAll('#search-results li a').length === 2")
+            page.wait_for_function("count => document.querySelectorAll('#search-results li a').length === count",
+                                   arg=sum("理工" in item["title"] for item in articles))
             page.locator("#search").fill("林同学")
             page.wait_for_function("document.querySelectorAll('#search-results li a').length === 1")
             assert page.locator("#search-results .search-title mark").count() == 1
             page.locator("#search").fill("2026")
-            page.wait_for_function("document.querySelectorAll('#search-results li a').length === 4")
-            assert page.locator("#search-results .search-match mark").count() == 4
+            year_matches = sum(item["year"] == "2026" for item in articles)
+            page.wait_for_function("count => document.querySelectorAll('#search-results li a').length === count", arg=year_matches)
+            assert page.locator("#search-results .search-match mark").count() == year_matches
             assert page.locator("#search-results .search-match").first.inner_text().startswith("2026 届")
             page.locator("#search").fill("某学院")
             page.wait_for_function("document.querySelector('#search-results .search-match mark')?.textContent === '某学院'")
-            assert page.locator("#search-results li a").count() == 4
-            assert page.locator("#search-results .search-match mark").count() == 4
+            college_matches = sum(item["college"] == "某学院" for item in articles)
+            assert page.locator("#search-results li a").count() == college_matches
+            assert page.locator("#search-results .search-match mark").count() == college_matches
             page.locator("#search").fill("推荐信")
             page.locator("#search-results li a").first.wait_for(state="visible")
             assert page.locator("#search-results li a").count() == 1
