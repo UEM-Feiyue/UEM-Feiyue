@@ -42,6 +42,20 @@ def main():
     try:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch()
+            context = browser.new_context()
+            page = context.new_page()
+            for route in ("/", "/submit.html", "/community.html", *("/" + item["url"] for item in articles)):
+                page.goto(base + route, wait_until="domcontentloaded")
+                canonical = page.locator('link[rel="canonical"]')
+                assert canonical.count() == 1
+                # Public metadata retains the production origin in previews.
+                if route == "/":
+                    origin = canonical.get_attribute("href").rstrip("/")
+                assert canonical.get_attribute("href") == origin + route
+                assert page.locator('meta[property="og:url"]').get_attribute("content") == origin + route
+                assert page.locator('meta[name="twitter:title"]').get_attribute("content") == page.title()
+                assert page.locator('meta[property="og:type"]').get_attribute("content") == ("article" if route.startswith("/articles/") else "website")
+            context.close()
             for width in (320, 390, 900, 901, 1440, 1600):
                 for theme in ("light", "dark"):
                     context = browser.new_context(viewport={"width": width, "height": 900}, reduced_motion="reduce")
@@ -230,7 +244,7 @@ def main():
                         page.locator("#category-nav [data-category='kaoyan']").click()
                         page.wait_for_url("**/?category=kaoyan")
                         page.wait_for_function("scrollY === 0")
-                        assert page.locator(".article-item:visible").count() == 1
+                        assert page.locator(".article-item:visible").count() == sum(item["category"] == "kaoyan" for item in articles)
                         if width <= 900:
                             page.locator("#menu-toggle").click()
                         page.locator("#category-nav [data-category='all']").click()

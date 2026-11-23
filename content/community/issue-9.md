@@ -8,6 +8,7 @@ destination: 北京理工大学
 program: 控制科学与工程
 contact: '123456'
 source_issue: 9
+demo: true
 ---
 # 【系统测试】考研经历投稿
 

@@ -85,6 +85,14 @@ sequenceDiagram
 
 发布工作流也支持手动触发。静态文件没有变化时不会产生 Published 提交；`build-info.json` 记录 Source 提交与构建运行。未来如使用 Vercel，应连接 Published 的 `main` 并直接部署同一份静态文件。
 
+## 搜索与分享元数据
+
+首页 `index.html` 的 canonical 是公开域名的唯一来源；同处的 `og:image` 与 `og:image:alt` 定义共享分享图片。迁移域名时修改首页 canonical，图片使用相对路径即可随域名迁移。
+
+`scripts/site_metadata.py` 在构建时统一生成每页独立的 canonical、Open Graph、Twitter Card、`sitemap.xml` 和 `robots.txt`，并在产物替换前检查一致性与本地分享图片。页面标题和摘要沿用各页面及文章自己的内容；筛选参数归一到首页，文章保留实际 `.html` 路由。演示文章继续保留可见「演示」标记。
+
+这与个人站采用同一工程原则：站点信息单一来源、生成产物统一验证，不引入跨仓库运行依赖。本站没有可靠的文章发布日期，不将毕业届次冒充发布日期生成 RSS 或结构化时间。sitemap 使用绝对 canonical URL，遵循 [Google 的 sitemap 指引](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap)。构建验证不代表搜索引擎已经收录。
+
 ## 文档与参与
 
 - [AGENTS.md](AGENTS.md)：工程原则与修改边界
