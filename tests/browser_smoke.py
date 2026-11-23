@@ -440,7 +440,7 @@ def main():
             page.goto(base + "/?view=all", wait_until="networkidle")
             page.evaluate("window.__sameDocument = true")
             page.locator('#category-nav [data-category="career"]').click()
-            page.wait_for_function("location.search === '?category=career' && !document.querySelector('#archive-section').hidden")
+            page.wait_for_function("document.querySelector('#category-nav [aria-current=page]')?.dataset.category === 'career'")
             assert page.evaluate("window.__sameDocument")
             page.keyboard.press("Control+k")
             page.locator('#search-dialog').wait_for(state="visible")
