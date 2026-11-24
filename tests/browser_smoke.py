@@ -2,6 +2,7 @@
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
+from urllib.parse import urljoin
 from pathlib import Path
 import sys
 from threading import Thread
@@ -46,6 +47,16 @@ def main():
             page = context.new_page()
             for route in ("/", "/submit.html", "/community.html", *("/" + item["url"] for item in articles)):
                 page.goto(base + route, wait_until="domcontentloaded")
+                icon_links = page.locator('link[rel="icon"], link[rel="apple-touch-icon"], link[rel="manifest"]')
+                assert icon_links.count() == 5
+                for href in icon_links.evaluate_all('(links) => links.map(link => link.href)'):
+                    response = context.request.get(href)
+                    assert response.ok, href
+                    if href.endswith('.webmanifest'):
+                        manifest = response.json()
+                        assert urljoin(href, manifest['start_url']) == base + '/'
+                        for icon in manifest['icons']:
+                            assert context.request.get(urljoin(href, icon['src'])).ok
                 canonical = page.locator('link[rel="canonical"]')
                 assert canonical.count() == 1
                 # Public metadata retains the production origin in previews.

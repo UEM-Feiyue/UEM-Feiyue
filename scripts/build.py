@@ -61,6 +61,10 @@ def display_title(meta):
 def shared_chrome(source, page, prefix="./", category=None):
     """Reuse the homepage's navigation/header/footer without a separate UI framework."""
     home = (ROOT / "index.html").read_text(encoding="utf-8")
+    icon_pattern = r'<link rel="(?:icon|apple-touch-icon|manifest)"[^>]*>'
+    icons = '\n'.join(re.findall(icon_pattern, home))
+    source = re.sub(icon_pattern + r'\s*', '', source)
+    source = source.replace('</head>', icons + '\n</head>', 1)
     sidebar = re.search(r'<aside class="sidebar".*?</aside>', home, re.S)[0]
     links = [f'<a href="{prefix}" data-view="home">首页</a>',
              f'<a href="{prefix}?view=all" data-category="all">全部经历</a>']
